@@ -487,38 +487,63 @@ section:nth-child(even) { /* Чередование фонов для лучше
     background-color: var(--secondary-background-color); /* Используем новую переменную */
 }
 
+/* =======================================
+   FAQ SECTION STYLES (АККОРДЕОН)
+   ======================================= */
 .faq-list {
-    max-width: 900px;
-    margin: 40px auto 0 auto;
+    margin-top: 40px;
 }
-
 .faq-item {
-    background-color: var(--background-light);
-    border: 1px solid var(--border-color);
+    background: var(--background-light);
+    margin-bottom: 15px;
     border-radius: 8px;
-    margin-bottom: 20px;
-    padding: 25px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    text-align: left; /* Важно: выравнивание текста вопросов */
-    transition: box-shadow 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    overflow: hidden; /* Важно для анимации max-height */
 }
-
-.faq-item:hover {
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-}
-
 .faq-question {
-    font-size: 1.3em;
-    color: var(--primary-color);
-    margin-top: 0;
-    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: var(--text-color-dark);
+    font-weight: 600;
+    margin: 0;
+    padding: 20px; /* Добавляем padding здесь */
+    cursor: pointer; /* Делаем вопрос кликабельным */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+.faq-question:hover {
+    background-color: #f0f0f0; /* Легкий эффект наведения */
+}
+.faq-icon {
+    font-size: 1.2em;
+    margin-left: 10px;
+    transition: transform 0.3s; /* Анимация для иконки */
+}
+.faq-question.active .faq-icon {
+    transform: rotate(180deg); /* Иконка поворачивается при открытии */
 }
 
+/* Скрываем ответы по умолчанию */
 .faq-answer {
-    font-size: 1.1em;
-    color: var(--text-color-dark);
-    line-height: 1.6;
-    margin-bottom: 0;
+    max-height: 0; /* Изначально скрыто */
+    transition: max-height 0.4s ease-in-out; /* Плавная анимация открытия */
+    padding: 0 20px; /* Боковой padding, вертикальный 0 */
+    overflow: hidden;
+}
+.faq-answer-content {
+    padding-bottom: 20px; /* Реальный padding внутри контента */
+    border-top: 1px solid #eee; /* Разделитель */
+    margin-top: -1px; /* Чтобы перекрыть верхнюю линию */
+    color: var(--secondary-color);
+}
+.faq-answer-content ul {
+    margin-top: 15px;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+.faq-answer-content li {
+    margin-bottom: 8px;
 }
 
 /* =======================================
@@ -657,6 +682,8 @@ section:nth-child(even) { /* Чередование фонов для лучше
 
 .member-photo {
     width: 250px;
+    min-width: 250px; /* Защита от сжатия */
+    max-width: 250px; /* Защита от растяжения */
     height: 250px;
     object-fit: cover;
     border-radius: 50%; /* Круглые фото */
