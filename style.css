@@ -611,6 +611,119 @@ section:nth-child(even) { /* Чередование фонов для лучше
 .footer a:hover {
     color: var(--text-color-light);
 }
+/* =======================================
+   TEAM PAGE STYLES
+   ======================================= */
+
+#team-hero {
+    /* Используем стили Hero, но делаем его светлее */
+    background: var(--primary-color-light-bg); 
+    color: var(--text-color-dark);
+    padding: 100px 0 50px 0;
+}
+
+#team-hero h1 {
+    font-size: 2.8em;
+    color: var(--primary-color);
+}
+
+#team-hero p {
+    font-size: 1.2em;
+    max-width: 800px;
+    margin: 0 auto 0 auto;
+    color: var(--secondary-color);
+}
+
+#team-members {
+    padding-top: 50px;
+    text-align: left; /* Изменим, чтобы текст в карточках был слева */
+}
+
+.team-member-card {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 80px;
+    padding: 40px;
+    background-color: var(--background-light);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.team-member-card.reverse-layout {
+    flex-direction: row-reverse; /* Меняем порядок для чередования */
+    background-color: var(--secondary-background-color);
+}
+
+.member-photo {
+    width: 250px;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 50%; /* Круглые фото */
+    border: 5px solid var(--primary-color-light-bg);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    flex-shrink: 0; /* Не сжимать фото */
+}
+
+.team-member-card.reverse-layout .member-photo {
+    border: 5px solid var(--background-light);
+}
+
+.member-info h2 {
+    font-size: 2em;
+    color: var(--text-color-dark);
+    margin-bottom: 5px;
+}
+
+.member-info .role {
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+.member-info p {
+    line-height: 1.7;
+    color: var(--secondary-color);
+    margin-bottom: 15px;
+}
+
+.back-button {
+    margin-top: 30px;
+    display: block;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    /* Используем secondary-btn, но переопределим фон для кнопки "Назад" */
+    background-color: var(--secondary-color);
+    background-image: linear-gradient(to bottom, var(--secondary-color), #5a6268); 
+}
+
+.back-button:hover {
+    background-image: linear-gradient(to bottom, #5a6268, #545b62);
+}
+
+/* Адаптивность для страницы команды */
+@media (max-width: 992px) {
+    .team-member-card,
+    .team-member-card.reverse-layout {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .member-info {
+        order: 2; /* Текст всегда идет после фото */
+    }
+    
+    .member-photo {
+        margin-bottom: 20px;
+        order: 1;
+    }
+
+    .member-info h2, .member-info .role {
+        text-align: center;
+    }
+}
 
 /* Адаптивность */
 @media (max-width: 768px) {
