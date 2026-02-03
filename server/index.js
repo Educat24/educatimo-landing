@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 });
 
 // Explicitly handle clean URLs for specific languages to ensure they work
-['ua', 'en', 'pl', 'cz', 'team', 'team-ua', 'team-en', 'team-pl', 'team-cz'].forEach(page => {
+['ru', 'ua', 'en', 'pl', 'cz', 'team', 'team-ua', 'team-en', 'team-pl', 'team-cz'].forEach(page => {
     app.get(`/${page}`, (req, res) => {
         res.sendFile(path.join(__dirname, '..', `${page}.html`));
     });
