@@ -120,7 +120,8 @@
                         // Default to landing pages
                         return lang === 'ru' ? '/' : `/${lang}`;
                         }
-                        const curLang = typeof currentLanguage !== 'undefined' ? currentLanguage : 'ru';
+                        const curLang = typeof language !== 'undefined' ? language : (typeof currentLanguage !==
+                        'undefined' ? currentLanguage : 'ru');
                         %>
                         <a href="<%= getLangLink('ua') %>" class="<%= curLang === 'ua' ? 'active' : '' %>">UA</a>
                         <a href="<%= getLangLink('en') %>" class="<%= curLang === 'en' ? 'active' : '' %>">EN</a>
