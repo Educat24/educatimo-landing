@@ -1,0 +1,30 @@
+<%- include('partials/header') %>
+
+    <section class="section" style="padding: 60px 0;">
+        <div class="container" style="max-width: 800px;">
+            <article class="article-full">
+                <h1 style="font-size: 2.5em; margin-bottom: 10px;">
+                    <%= article.title %>
+                </h1>
+                <p class="article-meta" style="color: #777; margin-bottom: 30px;">
+                    <%= new Date(article.created_at).toLocaleDateString('ru-RU') %>
+                </p>
+
+                <% if (article.image_url) { %>
+                    <img src="<%= article.image_url %>" alt="<%= article.title %>"
+                        style="width: 100%; border-radius: 8px; margin-bottom: 40px;">
+                    <% } %>
+
+                        <div class="article-content" style="font-size: 1.1em; line-height: 1.8; color: #333;">
+                            <%- article.content %>
+                        </div>
+
+                        <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee;">
+                            <a href="/blog?language=<%= language %>" class="btn secondary-btn">&larr; <%=
+                                    terms.backToBlog %></a>
+                        </div>
+            </article>
+        </div>
+    </section>
+
+    <%- include('partials/footer') %>

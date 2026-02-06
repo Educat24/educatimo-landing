@@ -1,0 +1,57 @@
+<%- include('partials/header') %>
+
+    <section class="section" style="padding: 60px 0;">
+        <div class="container">
+            <div class="section-header">
+                <h2>
+                    <%= terms.blogTitle %>
+                </h2>
+                <p>
+                    <%= terms.blogSubtitle %>
+                </p>
+            </div>
+
+            <div class="blog-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; margin-top: 40px;">
+                <% if (articles.length===0) { %>
+                    <p>
+                        <%= terms.noArticles %>
+                    </p>
+                    <% } else { %>
+                        <% articles.forEach(function(article) { %>
+                            <article class="blog-card"
+                                style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s ease;">
+                                <% if (article.image_url) { %>
+                                    <img src="<%= article.image_url %>" alt="<%= article.title %>"
+                                        style="width: 100%; height: 200px; object-fit: cover;">
+                                    <% } else { %>
+                                        <div
+                                            style="width: 100%; height: 200px; background-color: #eee; display: flex; align-items: center; justify-content: center; color: #aaa;">
+                                            <%= terms.noImage %>
+                                        </div>
+                                        <% } %>
+                                            <div class="blog-content" style="padding: 20px;">
+                                                <h3 style="margin-top: 0; font-size: 1.25em;"><a
+                                                        href="/blog/<%= article.slug %>"
+                                                        style="text-decoration: none; color: #333;">
+                                                        <%= article.title %>
+                                                    </a></h3>
+                                                <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+                                                    <%= new Date(article.created_at).toLocaleDateString() %>
+                                                </p>
+                                                <p style="color: #555; line-height: 1.5;">
+                                                    <%= article.summary %>
+                                                </p>
+                                                <a href="/blog/<%= article.slug %>"
+                                                    style="color: var(--primary-color); text-decoration: none; font-weight: bold; margin-top: 10px; display: inline-block;">
+                                                    <%= terms.readMore %> &rarr;
+                                                </a>
+                                            </div>
+                            </article>
+                            <% }); %>
+                                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <%- include('partials/footer') %>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        <%= typeof pageTitle !=='undefined' ? pageTitle : 'Neuro Educatimo – Будущее доказательного образования' %>
+    </title>
+
+    <meta name="description"
+        content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'SaaS-платформа для оцифровки и визуализации когнитивного развития детей. Перестаньте продавать обещания — начните демонстрировать результаты.' %>">
+    <% if (typeof keywords !=='undefined' ) { %>
+        <meta name="keywords" content="<%= keywords %>">
+        <% } %>
+
+            <meta property="og:title" content="<%= typeof pageTitle !== 'undefined' ? pageTitle : 'Neuro Educatimo' %>">
+            <meta property="og:description"
+                content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'SaaS-платформа для оцифровки и визуализации когнитивного развития детей.' %>">
+            <meta property="og:image"
+                content="<%= typeof imageUrl !== 'undefined' ? imageUrl : '/img/hero-background.jpeg' %>">
+            <meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
+            <meta property="og:url"
+                content="<%= typeof currentUrl !== 'undefined' ? currentUrl : 'https://neuro.educatimo.com' %>">
+            <meta property="og:locale" content="<%= typeof ogLocale !== 'undefined' ? ogLocale : 'ru_RU' %>">
+
+            <% if (typeof alternates !=='undefined' ) { %>
+                <% alternates.forEach(function(alt) { %>
+                    <link rel="alternate" hreflang="<%= alt.lang %>"
+                        href="<%= baseUrl %>/blog/<%= alt.slug %>?language=<%= alt.lang === 'uk' ? 'ua' : (alt.lang === 'cs' ? 'cz' : alt.lang) %>" />
+                    <% }); %>
+                        <% } %>
+
+                            <% if (typeof defaultAlt !=='undefined' ) { %>
+                                <link rel="alternate" hreflang="x-default"
+                                    href="<%= baseUrl %>/blog/<%= defaultAlt.slug %>?language=<%= defaultAlt.lang === 'uk' ? 'ua' : (defaultAlt.lang === 'cs' ? 'cz' : defaultAlt.lang) %>" />
+                                <% } %>
+
+                                    <% if (typeof schemaJson !=='undefined' ) { %>
+                                        <script type="application/ld+json">
+                    <%- JSON.stringify(schemaJson) %>
+                </script>
+                                        <% } %>
+
+                                            <link rel="stylesheet" href="/style.css">
+                                            <link rel="icon" type="image/png" href="/favicon.png">
+                                            <link rel="stylesheet"
+                                                href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+                                            <!-- Admin-specific styles -->
+                                            <% if (typeof isAdmin !=='undefined' && isAdmin) { %>
+                                                <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
+                                                    rel="stylesheet">
+                                                <style>
+                                                    .admin-container {
+                                                        max-width: 1000px;
+                                                        margin: 40px auto;
+                                                        padding: 20px;
+                                                    }
+
+                                                    .form-group {
+                                                        margin-bottom: 20px;
+                                                    }
+
+                                                    .form-group label {
+                                                        display: block;
+                                                        margin-bottom: 5px;
+                                                        font-weight: bold;
+                                                    }
+
+                                                    .form-group input,
+                                                    .form-group textarea,
+                                                    .form-group select {
+                                                        width: 100%;
+                                                        padding: 10px;
+                                                        border: 1px solid #ddd;
+                                                        border-radius: 4px;
+                                                    }
+
+                                                    #editor {
+                                                        height: 400px;
+                                                        background: white;
+                                                    }
+
+                                                    .article-list-item {
+                                                        padding: 15px;
+                                                        border-bottom: 1px solid #eee;
+                                                        display: flex;
+                                                        justify-content: space-between;
+                                                        align-items: center;
+                                                    }
+
+                                                    .btn-small {
+                                                        padding: 5px 10px;
+                                                        font-size: 0.9em;
+                                                        margin-left: 5px;
+                                                        cursor: pointer;
+                                                    }
+
+                                                    .btn-danger {
+                                                        background-color: #e74c3c;
+                                                        color: white;
+                                                        border: none;
+                                                    }
+
+                                                    .btn-primary {
+                                                        background-color: #3498db;
+                                                        color: white;
+                                                        border: none;
+                                                    }
+                                                </style>
+                                                <% } %>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="navbar-brand">Neuro Educatimo</a>
+            <div class="nav-links" style="display: flex; gap: 20px; align-items: center;">
+                <a href="/blog" style="text-decoration: none; color: inherit; font-weight: 500;">Блог</a>
+                <div class="lang-switcher">
+                    <% const getLangLink=(lang)=> {
+                        if (typeof currentPath !== 'undefined') {
+                        if (currentPath.startsWith('/admin')) return `/admin?language=${lang}`;
+                        if (currentPath.startsWith('/blog')) return `/blog?language=${lang}`;
+                        }
+                        // Default to landing pages
+                        return lang === 'ru' ? '/' : `/${lang}`;
+                        }
+                        const curLang = typeof currentLanguage !== 'undefined' ? currentLanguage : 'ru';
+                        %>
+                        <a href="<%= getLangLink('ua') %>" class="<%= curLang === 'ua' ? 'active' : '' %>">UA</a>
+                        <a href="<%= getLangLink('en') %>" class="<%= curLang === 'en' ? 'active' : '' %>">EN</a>
+                        <a href="<%= getLangLink('pl') %>" class="<%= curLang === 'pl' ? 'active' : '' %>">PL</a>
+                        <a href="<%= getLangLink('cz') %>" class="<%= curLang === 'cz' ? 'active' : '' %>">CZ</a>
+                        <a href="<%= getLangLink('ru') %>" class="<%= curLang === 'ru' ? 'active' : '' %>">RU</a>
+                </div>
+            </div>
+        </div>
+    </nav>

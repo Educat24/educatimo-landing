@@ -1,0 +1,276 @@
+<%- include('partials/header', { isAdmin: true }) %>
+
+    <div class="admin-container">
+        <h1>Управление блогом</h1>
+
+        <div id="admin-view-list">
+            <button class="btn btn-primary" onclick="showCreateForm()" style="margin-bottom: 20px;">+ Новая
+                статья</button>
+            <div id="articles-list">
+                <!-- Loaded via JS -->
+                Loading...
+            </div>
+        </div>
+
+        <div id="admin-view-form" style="display: none;">
+            <h2 id="form-title">Создать статью</h2>
+            <form id="article-form">
+                <input type="hidden" id="article-id">
+
+                <div class="form-group">
+                    <label>Заголовок</label>
+                    <input type="text" id="title" required oninput="generateSlug(this.value)">
+                </div>
+
+                <div class="form-group">
+                    <label>Slug (URL адрес)</label>
+                    <input type="text" id="slug" required>
+                    <small>Например: my-new-article</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Краткое описание (для SEO и превью)</label>
+                    <textarea id="summary" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Контент</label>
+                    <!-- Quill editor container -->
+                    <div id="editor"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Язык</label>
+                    <select id="language">
+                        <option value="ru">Русский</option>
+                        <option value="ua">Украинский</option>
+                        <option value="en">Английский</option>
+                        <option value="pl">Польский</option>
+                        <option value="cz">Чешский</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Keywords (через запятую)</label>
+                    <input type="text" id="keywords">
+                </div>
+
+                <div class="form-group">
+                    <label>URL картинки</label>
+                    <label>URL картинки</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="image_url" style="flex: 1;">
+                        <input type="file" id="image_upload" accept="image/*" style="display: none;"
+                            onchange="uploadImage(this)">
+                        <button type="button" class="btn btn-secondary"
+                            onclick="document.getElementById('image_upload').click()">
+                            Загрузить фото
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                    <button type="button" class="btn btn-danger" onclick="showList()">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Pass currentLanguage from EJS to JS
+        const currentLanguage = "<%= typeof currentLanguage !== 'undefined' ? currentLanguage : 'ru' %>";
+        const API_URL = '/api/articles';
+        let currentArticles = [];
+
+        document.addEventListener('DOMContentLoaded', loadArticles);
+
+        async function loadArticles() {
+            try {
+                // Filter by current language
+                const res = await fetch(`${API_URL}?language=${currentLanguage}`);
+                currentArticles = await res.json();
+                renderList();
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка загрузки статей');
+            }
+        }
+
+        function renderList() {
+            const list = document.getElementById('articles-list');
+            list.innerHTML = '';
+            if (currentArticles.length === 0) {
+                list.innerHTML = '<p>Нет статей.</p>';
+                return;
+            }
+
+            currentArticles.forEach(article => {
+                const item = document.createElement('div');
+                item.className = 'article-list-item';
+                item.innerHTML = `
+                <div>
+                    <strong>${article.title}</strong>
+                    <span style="color: #666; font-size: 0.8em; margin-left: 10px;">/${article.slug} (${article.language})</span>
+                </div>
+                <div>
+                    <button class="btn-small btn-primary" onclick="editArticle(${article.id})">Ред.</button>
+                    <button class="btn-small btn-danger" onclick="deleteArticle(${article.id})">Удалить</button>
+                </div>
+            `;
+                list.appendChild(item);
+            });
+        }
+
+        function showCreateForm() {
+            document.getElementById('admin-view-list').style.display = 'none';
+            document.getElementById('admin-view-form').style.display = 'block';
+            document.getElementById('form-title').innerText = 'Новая статья';
+            document.getElementById('article-form').reset();
+            // Set default language based on current context
+            document.getElementById('language').value = currentLanguage;
+            document.getElementById('article-id').value = '';
+            quill.root.innerHTML = ''; // Clear editor
+        }
+
+        function showList() {
+            document.getElementById('admin-view-list').style.display = 'block';
+            document.getElementById('admin-view-form').style.display = 'none';
+        }
+
+        function editArticle(id) {
+            const article = currentArticles.find(a => a.id === id);
+            if (!article) return;
+
+            showCreateForm();
+            document.getElementById('form-title').innerText = 'Редактировать статью';
+            document.getElementById('article-id').value = article.id;
+            document.getElementById('title').value = article.title;
+            document.getElementById('slug').value = article.slug;
+            document.getElementById('summary').value = article.summary || '';
+            document.getElementById('language').value = article.language;
+            document.getElementById('keywords').value = article.keywords || '';
+            document.getElementById('image_url').value = article.image_url || '';
+            quill.root.innerHTML = article.content;
+        }
+
+        async function deleteArticle(id) {
+            if (!confirm('Вы уверены, что хотите удалить эту статью?')) return;
+            try {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                loadArticles();
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка удаления');
+            }
+        }
+
+        async function uploadImage(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const btn = input.nextElementSibling; // The button
+            const originalText = btn.innerText;
+            btn.innerText = 'Загрузка...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('image_url').value = data.url;
+                } else {
+                    alert('Ошибка загрузки файла');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка сети');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                input.value = ''; // Reset input
+            }
+        }
+
+        function generateSlug(text) {
+            // Simple transliteration map
+            const cyrillicToLatin = {
+                'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+                'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+                'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+                'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
+                'я': 'ya', 'є': 'ye', 'і': 'i', 'ї': 'yi', 'ґ': 'g'
+            };
+
+            const slug = text.toLowerCase()
+                .split('')
+                .map(char => cyrillicToLatin[char] || char) // Transliterate or keep
+                .join('')
+                .replace(/[^\w\s-]/g, '') // Remove non-word chars
+                .replace(/[\s_-]+/g, '-') // Replace spaces/underscores with -
+                .replace(/^-+|-+$/g, ''); // Trim -
+
+            // Auto-fill slug if empty or if user hasn't manually edited it (logic simplification: if it matches old auto-gen)
+            // Just always auto-fill if slug field is empty OR if we want to live-update
+            // Let's only auto-fill if the current slug value seems to be derived from the title or is empty
+            const slugInput = document.getElementById('slug');
+            if (slugInput.value === '' || slugInput.value === generateSlug(text.slice(0, -1))) {
+                // This check is a bit complex, let's just keep it simple: populate if empty or user is typing title
+                // We will populate if value is empty or was previously auto-filled (hard to track)
+                // For now, let's just populate if it's empty to allow manual override
+            }
+            // Better UX: Always update slug unless user focuses on slug field? 
+            // Standard behavior: update slug while typing title until user touches slug field.
+            // Simplified: Just update if it's empty. But if user cleared it, it should update.
+
+            if (document.activeElement === document.getElementById('title')) {
+                slugInput.value = slug;
+            }
+        }
+
+        document.getElementById('article-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('article-id').value;
+            const data = {
+                title: document.getElementById('title').value,
+                slug: document.getElementById('slug').value,
+                summary: document.getElementById('summary').value,
+                content: quill.root.innerHTML,
+                language: document.getElementById('language').value,
+                keywords: document.getElementById('keywords').value,
+                image_url: document.getElementById('image_url').value
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/${id}` : API_URL;
+
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    showList();
+                    loadArticles();
+                } else {
+                    const err = await res.json();
+                    alert('Ошибка: ' + (err.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка сохранения');
+            }
+        });
+    </script>
+
+    <%- include('partials/footer', { isAdmin: true }) %>
