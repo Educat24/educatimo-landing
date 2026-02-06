@@ -1,0 +1,45 @@
+server {
+    server_name www.neuro.educatimo.com neuro.educatimo.com;
+    root /var/www/landing-neuro;
+    index index.html;
+
+    # Clean URLs logic: try file, then file.html, then directory
+    location / {
+        try_files $uri $uri.html $uri/ =404;
+    }
+
+    # Proxy for API and Dynamic Routes (Blog, Admin, Sitemap, Uploads)
+    location ~ ^/(api|blog|admin|login|logout|sitemap\.xml|uploads) {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # SAFER REDIRECTS: Check request_uri to avoid internal loop on index.html
+    # 1. Redirect /index.html to /
+    if ($request_uri = /index.html) {
+        return 301 /;
+    }
+    # 2. Redirect any other .html to clean URL
+    if ($request_uri ~ ^/(.+)\.html$) {
+        return 301 /$1;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/www.neuro.educatimo.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/www.neuro.educatimo.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+server {
+    if ($host = www.neuro.educatimo.com) {
+        return 301 https://$host$request_uri;
+    }
+    listen 80;
+    server_name www.neuro.educatimo.com neuro.educatimo.com;
+    return 404;
+}

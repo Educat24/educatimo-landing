@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html
+    lang="<%= typeof lang !== 'undefined' ? lang : (typeof language !== 'undefined' && language === 'ua' ? 'uk' : (typeof language !== 'undefined' && language === 'cz' ? 'cs' : 'ru')) %>">
 
 <head>
     <meta charset="UTF-8">
@@ -24,92 +25,83 @@
                 content="<%= typeof currentUrl !== 'undefined' ? currentUrl : 'https://neuro.educatimo.com' %>">
             <meta property="og:locale" content="<%= typeof ogLocale !== 'undefined' ? ogLocale : 'ru_RU' %>">
 
-            <% if (typeof alternates !=='undefined' ) { %>
-                <% alternates.forEach(function(alt) { %>
-                    <link rel="alternate" hreflang="<%= alt.lang %>"
-                        href="<%= baseUrl %>/blog/<%= alt.slug %>?language=<%= alt.lang === 'uk' ? 'ua' : (alt.lang === 'cs' ? 'cz' : alt.lang) %>" />
-                    <% }); %>
-                        <% } %>
+            <% if (typeof currentUrl !=='undefined' && typeof lang !=='undefined' ) { %>
+                <link rel="alternate" hreflang="<%= lang %>" href="<%= currentUrl %>" />
+                <% } %>
 
-                            <% if (typeof defaultAlt !=='undefined' ) { %>
-                                <link rel="alternate" hreflang="x-default"
-                                    href="<%= baseUrl %>/blog/<%= defaultAlt.slug %>?language=<%= defaultAlt.lang === 'uk' ? 'ua' : (defaultAlt.lang === 'cs' ? 'cz' : defaultAlt.lang) %>" />
-                                <% } %>
-
-                                    <% if (typeof schemaJson !=='undefined' ) { %>
-                                        <script type="application/ld+json">
+                    <% if (typeof schemaJson !=='undefined' ) { %>
+                        <script type="application/ld+json">
                     <%- JSON.stringify(schemaJson) %>
                 </script>
-                                        <% } %>
+                        <% } %>
 
-                                            <link rel="stylesheet" href="/style.css">
-                                            <link rel="icon" type="image/png" href="/favicon.png">
-                                            <link rel="stylesheet"
-                                                href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+                            <link rel="stylesheet" href="/style.css">
+                            <link rel="icon" type="image/png" href="/favicon.png">
+                            <link rel="stylesheet"
+                                href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-                                            <!-- Admin-specific styles -->
-                                            <% if (typeof isAdmin !=='undefined' && isAdmin) { %>
-                                                <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css"
-                                                    rel="stylesheet">
-                                                <style>
-                                                    .admin-container {
-                                                        max-width: 1000px;
-                                                        margin: 40px auto;
-                                                        padding: 20px;
-                                                    }
+                            <!-- Admin-specific styles -->
+                            <% if (typeof isAdmin !=='undefined' && isAdmin) { %>
+                                <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+                                <style>
+                                    .admin-container {
+                                        max-width: 1000px;
+                                        margin: 40px auto;
+                                        padding: 20px;
+                                    }
 
-                                                    .form-group {
-                                                        margin-bottom: 20px;
-                                                    }
+                                    .form-group {
+                                        margin-bottom: 20px;
+                                    }
 
-                                                    .form-group label {
-                                                        display: block;
-                                                        margin-bottom: 5px;
-                                                        font-weight: bold;
-                                                    }
+                                    .form-group label {
+                                        display: block;
+                                        margin-bottom: 5px;
+                                        font-weight: bold;
+                                    }
 
-                                                    .form-group input,
-                                                    .form-group textarea,
-                                                    .form-group select {
-                                                        width: 100%;
-                                                        padding: 10px;
-                                                        border: 1px solid #ddd;
-                                                        border-radius: 4px;
-                                                    }
+                                    .form-group input,
+                                    .form-group textarea,
+                                    .form-group select {
+                                        width: 100%;
+                                        padding: 10px;
+                                        border: 1px solid #ddd;
+                                        border-radius: 4px;
+                                    }
 
-                                                    #editor {
-                                                        height: 400px;
-                                                        background: white;
-                                                    }
+                                    #editor {
+                                        height: 400px;
+                                        background: white;
+                                    }
 
-                                                    .article-list-item {
-                                                        padding: 15px;
-                                                        border-bottom: 1px solid #eee;
-                                                        display: flex;
-                                                        justify-content: space-between;
-                                                        align-items: center;
-                                                    }
+                                    .article-list-item {
+                                        padding: 15px;
+                                        border-bottom: 1px solid #eee;
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    }
 
-                                                    .btn-small {
-                                                        padding: 5px 10px;
-                                                        font-size: 0.9em;
-                                                        margin-left: 5px;
-                                                        cursor: pointer;
-                                                    }
+                                    .btn-small {
+                                        padding: 5px 10px;
+                                        font-size: 0.9em;
+                                        margin-left: 5px;
+                                        cursor: pointer;
+                                    }
 
-                                                    .btn-danger {
-                                                        background-color: #e74c3c;
-                                                        color: white;
-                                                        border: none;
-                                                    }
+                                    .btn-danger {
+                                        background-color: #e74c3c;
+                                        color: white;
+                                        border: none;
+                                    }
 
-                                                    .btn-primary {
-                                                        background-color: #3498db;
-                                                        color: white;
-                                                        border: none;
-                                                    }
-                                                </style>
-                                                <% } %>
+                                    .btn-primary {
+                                        background-color: #3498db;
+                                        color: white;
+                                        border: none;
+                                    }
+                                </style>
+                                <% } %>
 </head>
 
 <body>

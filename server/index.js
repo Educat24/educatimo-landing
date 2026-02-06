@@ -405,30 +405,11 @@ app.get('/blog/:slug', async (req, res) => {
 
         // Language setup
         const language = article.language || 'ru';
+        const isoLang = language === 'ua' ? 'uk' : (language === 'cz' ? 'cs' : language);
         const terms = TERMS[language] || TERMS['ru'];
 
         // Auto-linking
         article.content = linkify(article.content, language);
-
-        // Hreflang alternates
-        let alternates = [];
-        if (article.translation_id) {
-            const altResult = await pool.query('SELECT language, slug FROM articles WHERE translation_id = $1', [article.translation_id]);
-            alternates = altResult.rows.map(row => ({
-                lang: row.language === 'ua' ? 'uk' : (row.language === 'cz' ? 'cs' : row.language), // ISO fix
-                slug: row.slug
-            }));
-        } else {
-            // Fallback if no grouping (self-ref)
-            alternates.push({
-                lang: language === 'ua' ? 'uk' : (language === 'cz' ? 'cs' : language),
-                slug: article.slug
-            });
-        }
-
-        // Ensure default x-default exists (e.g. English or current)
-        const hasEn = alternates.find(a => a.lang === 'en');
-        const defaultAlt = hasEn ? hasEn : alternates[0];
 
         // JSON-LD Schema
         const schemaJson = {
@@ -469,6 +450,7 @@ app.get('/blog/:slug', async (req, res) => {
         res.render('article', {
             article: article,
             language: language,
+            lang: isoLang,
             terms: terms,
             currentPath: `/blog/${slug}?language=${language}`,
             currentUrl: `https://neuro.educatimo.com/blog/${slug}?language=${language}`,
@@ -480,8 +462,7 @@ app.get('/blog/:slug', async (req, res) => {
             ogType: 'article',
             ogLocale: localeMap[language] || 'en_US',
 
-            alternates: alternates,
-            defaultAlt: defaultAlt,
+
             baseUrl: 'https://neuro.educatimo.com',
             schemaJson: schemaJson
         });
