@@ -132,8 +132,6 @@ const initDb = async () => {
                 keywords TEXT,
                 image_url VARCHAR(255),
                 published_at TIMESTAMP,
-                image_url VARCHAR(255),
-                published_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 translation_id UUID
             );
