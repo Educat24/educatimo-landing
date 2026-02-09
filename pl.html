@@ -567,6 +567,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Dziękujemy za rejestrację! Skontaktujemy się z Tobą wkrótce.";
                     messageDiv.style.color = "var(--accent-color)";
+                    if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
                     // Błąd
                     throw new Error('Network response was not ok.');

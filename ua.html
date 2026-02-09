@@ -561,6 +561,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Дякуємо за реєстрацію! Ми зв'яжемося з вами найближчим часом.";
                     messageDiv.style.color = "var(--accent-color)";
+                    if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
                     // Помилка
                     throw new Error('Network response was not ok.');

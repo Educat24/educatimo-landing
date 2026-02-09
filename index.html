@@ -565,6 +565,7 @@
                     button.style.display = 'none'; // Прячем кнопку
                     messageDiv.innerText = "Спасибо за регистрацию! Мы свяжемся с вами в ближайшее время.";
                     messageDiv.style.color = "var(--accent-color)";
+                    if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
                     // Ошибка
                     throw new Error('Network response was not ok.');

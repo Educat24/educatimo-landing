@@ -564,6 +564,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Thank you for registering! We will contact you shortly.";
                     messageDiv.style.color = "var(--accent-color)";
+                    if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
                     // Error
                     throw new Error('Network response was not ok.');
