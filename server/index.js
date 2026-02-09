@@ -1,22 +1,28 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+// Проверка загрузки переменных для почты (без вывода значений)
+const hasMailUser = !!(process.env.EMAIL_USER || process.env.GMAIL_USER);
+const hasMailPass = !!(process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD);
+if (!hasMailUser || !hasMailPass) {
+    console.warn('Почта отключена: в server/.env должны быть GMAIL_USER и GMAIL_APP_PASSWORD (без пробелов вокруг =)');
+}
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const path = require('path');
 const session = require('express-session');
 const multer = require('multer');
+const nodemailer = require('nodemailer');
 const pgSession = require('connect-pg-simple')(session);
 const { v4: uuidv4 } = require('uuid');
 const { KEYWORD_MAPS, TERMS } = require('./seo_config');
 
-
-
 const app = express();
 const port = 3000;
 
-// Database configuration
+// Database configuration (DATABASE_URL on production)
 const pool = new Pool({
-    connectionString: 'postgresql://cognitive_tests_user:NewPasswordForCognitiveDb-2025!@localhost:5432/cognitive_tests_db'
+    connectionString: process.env.DATABASE_URL || 'postgresql://cognitive_tests_user:NewPasswordForCognitiveDb-2025!@localhost:5432/cognitive_tests_db'
 });
 
 // Middleware
@@ -38,6 +44,7 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
+const parseForm = multer().none(); // for multipart form without files (registration form)
 
 // View Engine
 app.set('view engine', 'ejs');
@@ -70,20 +77,25 @@ const isAdminApi = (req, res, next) => {
     res.status(401).json({ error: 'Unauthorized' });
 };
 
-// Serve static files from the parent directory
-app.use(express.static(path.join(__dirname, '..'), { extensions: ['html'] }));
-
-// Explicitly handle root to index.html
+// Root route: language detection and 302 redirect (SEO: root is router, no content)
+const LOCALE_MAP = { ru: '/ru/', uk: '/uk/', en: '/en/', pl: '/pl/', cs: '/cs/' };
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    const acceptLanguage = (req.get('Accept-Language') || '').toLowerCase();
+    const preferred = acceptLanguage.split(',')[0].trim().split('-')[0];
+    const target = LOCALE_MAP[preferred] || LOCALE_MAP.en;
+    res.redirect(302, target);
 });
 
-// Explicitly handle clean URLs for specific languages to ensure they work
-['ru', 'ua', 'en', 'pl', 'cz', 'team', 'team-ua', 'team-en', 'team-pl', 'team-cz'].forEach(page => {
-    app.get(`/${page}`, (req, res) => {
-        res.sendFile(path.join(__dirname, '..', `${page}.html`));
-    });
+// New URL structure: /ru/, /en/, /uk/, /pl/, /cs/ (for local dev without nginx)
+const LANGS = ['ru', 'en', 'uk', 'pl', 'cs'];
+LANGS.forEach(lang => {
+    app.get(`/${lang}/`, (req, res) => res.sendFile(path.join(__dirname, '..', lang, 'index.html')));
+    app.get(`/${lang}/team`, (req, res) => res.sendFile(path.join(__dirname, '..', lang, 'team.html')));
+    app.get(`/${lang}`, (req, res) => res.redirect(302, `/${lang}/`));
 });
+
+// Serve static files (style.css, img/, favicon, etc.)
+app.use(express.static(path.join(__dirname, '..'), { extensions: ['html'] }));
 
 // --- Auth Routes ---
 
@@ -166,27 +178,65 @@ const initDb = async () => {
 
 initDb();
 
-// API Endpoint
-app.post('/api/register', async (req, res) => {
+// Send registration notification to owner. Uses env: RECIPIENT_EMAIL, EMAIL_USER, EMAIL_PASS (or GMAIL_USER, GMAIL_APP_PASSWORD).
+async function sendRegistrationEmail(email, center_name) {
+    const to = process.env.RECIPIENT_EMAIL || 'svetlichnyioleksiy@gmail.com';
+    const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
+    const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+    if (!user || !pass) {
+        console.warn('Registration email skipped: set EMAIL_USER and EMAIL_PASS (or GMAIL_USER and GMAIL_APP_PASSWORD) in .env');
+        return null;
+    }
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass }
+    });
+    await transporter.sendMail({
+        from: user,
+        to,
+        subject: 'Neuro Educatimo: новая заявка в лист ожидания',
+        text: `Новая регистрация в пилот:\n\nEmail: ${email}\nНазвание центра: ${center_name}\n\nДата: ${new Date().toISOString()}`,
+        html: `<p>Новая регистрация в пилот:</p><ul><li><strong>Email:</strong> ${email}</li><li><strong>Название центра:</strong> ${center_name}</li></ul><p>Дата: ${new Date().toISOString()}</p>`
+    });
+    console.log('Registration email sent to', to);
+    return true;
+}
+
+// API Endpoint: save to DB and/or send email. Success if at least one works (so form works even when DB is unavailable on prod).
+app.post('/api/register', parseForm, async (req, res) => {
     const { email, center_name } = req.body;
 
     if (!email || !center_name) {
         return res.status(400).json({ error: 'Email and Center Name are required' });
-
-
-
     }
 
+    let dbOk = false;
+    let emailOk = false;
+
     try {
-        const result = await pool.query(
+        await pool.query(
             'INSERT INTO landing_waitlist (email, center_name) VALUES ($1, $2) RETURNING *',
             [email, center_name]
         );
-        res.status(201).json(result.rows[0]);
+        dbOk = true;
     } catch (err) {
         console.error('Error saving to database', err);
-        res.status(500).json({ error: 'Internal Server Error' });
     }
+
+    try {
+        const sent = await sendRegistrationEmail(email, center_name);
+        if (sent) emailOk = true;
+    } catch (err) {
+        console.error('Error sending registration email:', err.message || err);
+    }
+
+    if (dbOk || emailOk) {
+        if (emailOk) console.log('Registration: success (email sent)');
+        else console.log('Registration: success (saved to DB only, email not sent)');
+        return res.status(201).json({ email, center_name });
+    }
+    console.log('Registration: failed (DB and email both failed)');
+    res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // --- Blog API ---
@@ -291,21 +341,21 @@ app.post('/api/upload', isAdminApi, upload.single('image'), (req, res) => {
     }
 });
 
-// Sitemap XML Endpoint
+// Sitemap XML Endpoint (ISO 639-1 language codes: ru, en, uk, pl, cs only)
 app.get('/sitemap.xml', async (req, res) => {
     try {
         const result = await pool.query('SELECT slug, updated_at, created_at FROM articles ORDER BY created_at DESC');
         const articles = result.rows;
-        const baseUrl = 'https://neuro.educatimo.com'; // Change to localhost for dev: req.protocol + '://' + req.get('host')
+        const baseUrl = 'https://www.neuro.educatimo.com';
 
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
 
-        // Static pages
-        ['', 'ua', 'en', 'pl', 'cz'].forEach(page => {
+        // Static language home pages only (no old ua/cz or index)
+        ['ru', 'en', 'uk', 'pl', 'cs'].forEach(lang => {
             xml += `
    <url>
-      <loc>${baseUrl}/${page}</loc>
+      <loc>${baseUrl}/${lang}/</loc>
       <changefreq>monthly</changefreq>
       <priority>1.0</priority>
    </url>`;
@@ -363,11 +413,12 @@ const linkify = (text, language) => {
 
 app.get('/blog', async (req, res) => {
     try {
-        const language = req.query.language || 'ru'; // Default to RU
-        const terms = TERMS[language] || TERMS['ru'];
+        const urlLang = req.query.language || 'ru';
+        const dbLang = ({ uk: 'ua', cs: 'cz' })[urlLang] || urlLang;
+        const terms = TERMS[urlLang] || TERMS[dbLang] || TERMS['ru'];
 
         let query = 'SELECT * FROM articles WHERE language = $1 ORDER BY created_at DESC';
-        let params = [language];
+        let params = [dbLang];
 
         // Fallback: if no lang specific articles, maybe show all?
         // Specification says: "With each local page... user gets to corresponding local article page".
@@ -382,10 +433,10 @@ app.get('/blog', async (req, res) => {
         res.render('blog_list', {
             articles: result.rows,
             pageTitle: terms.blogTitle,
-            language: language,
+            language: urlLang,
             terms: terms,
             currentPath: '/blog',
-            currentLanguage: language
+            currentLanguage: urlLang
         });
     } catch (err) {
         console.error(err);
@@ -417,29 +468,29 @@ app.get('/blog/:slug', async (req, res) => {
             "@type": "BlogPosting",
             "mainEntityOfPage": {
                 "@type": "WebPage",
-                "@id": `https://neuro.educatimo.com/blog/${slug}?language=${language}`
+                "@id": `https://www.neuro.educatimo.com/blog/${slug}?language=${language}`
             },
             "headline": article.title,
-            "image": article.image_url ? [article.image_url] : ["https://neuro.educatimo.com/img/hero-background.jpeg"],
+            "image": article.image_url ? [article.image_url] : ["https://www.neuro.educatimo.com/img/hero-background.jpeg"],
             "datePublished": article.created_at,
             "dateModified": article.updated_at || article.created_at,
             "author": {
                 "@type": "Person",
                 "name": "Vladimir",
-                "url": "https://neuro.educatimo.com/team" // Link to team page
+                "url": "https://www.neuro.educatimo.com/en/team"
             },
             "publisher": {
                 "@type": "Organization",
                 "name": "Neuro Educatimo",
                 "logo": {
                     "@type": "ImageObject",
-                    "url": "https://neuro.educatimo.com/favicon.png"
+                    "url": "https://www.neuro.educatimo.com/favicon.png"
                 }
             },
             "mentions": [{
                 "@type": "Service",
                 "name": "Cognitive Testing SaaS",
-                "url": "https://neuro.educatimo.com"
+                "url": "https://www.neuro.educatimo.com"
             }]
         };
 
@@ -453,7 +504,7 @@ app.get('/blog/:slug', async (req, res) => {
             lang: isoLang,
             terms: terms,
             currentPath: `/blog/${slug}?language=${language}`,
-            currentUrl: `https://neuro.educatimo.com/blog/${slug}?language=${language}`,
+            currentUrl: `https://www.neuro.educatimo.com/blog/${slug}?language=${language}`,
             pageTitle: article.title,
             metaDescription: article.summary,
             keywords: article.keywords,
@@ -463,7 +514,7 @@ app.get('/blog/:slug', async (req, res) => {
             ogLocale: localeMap[language] || 'en_US',
 
 
-            baseUrl: 'https://neuro.educatimo.com',
+            baseUrl: 'https://www.neuro.educatimo.com',
             schemaJson: schemaJson
         });
     } catch (err) {

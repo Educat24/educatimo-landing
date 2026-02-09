@@ -1,0 +1,10 @@
+# Env with secrets (create from .env.example on server)
+server/.env
+.env
+
+# Dependencies
+node_modules/
+server/node_modules/
+
+# OS
+.DS_Store

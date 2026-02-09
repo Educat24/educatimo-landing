@@ -3,7 +3,29 @@ server {
     root /var/www/landing-neuro;
     index index.html;
 
-    # Clean URLs logic: try file, then file.html, then directory
+    # Root: proxy to Node for language detection and 302 redirect (no content at /)
+    location = / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Accept-Language $http_accept_language;
+    }
+
+    # 301: old language codes (ISO 639-1) and index.html
+    location = /index.html {
+        return 301 https://$host/;
+    }
+    location ~ ^/ua(/.*)?$ {
+        return 301 https://$host/uk$1;
+    }
+    location ~ ^/cz(/.*)?$ {
+        return 301 https://$host/cs$1;
+    }
+
+    # Clean URLs: try file, then file.html, then directory (serves /ru/, /en/, /uk/, /pl/, /cs/)
     location / {
         try_files $uri $uri.html $uri/ =404;
     }
@@ -18,14 +40,9 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 
-    # SAFER REDIRECTS: Check request_uri to avoid internal loop on index.html
-    # 1. Redirect /index.html to /
-    if ($request_uri = /index.html) {
-        return 301 /;
-    }
-    # 2. Redirect any other .html to clean URL
+    # Redirect any other .html to clean URL (e.g. /ru.html -> /ru/)
     if ($request_uri ~ ^/(.+)\.html$) {
-        return 301 /$1;
+        return 301 https://$host/$1;
     }
 
     listen 443 ssl; # managed by Certbot
