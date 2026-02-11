@@ -185,7 +185,7 @@ const initDb = async () => {
 initDb();
 
 // Display label for lang code in admin email (e.g. RU, PL, EN).
-const LANG_LABELS = { ru: 'RU', uk: 'UK', en: 'EN', pl: 'PL', cs: 'CZ' };
+const LANG_LABELS = { ru: 'RU', uk: 'UK', en: 'EN', pl: 'PL', cs: 'CZ', cz: 'CZ' };
 function getLangLabel(lang) {
     if (!lang || typeof lang !== 'string') return '—';
     const code = lang.toLowerCase().trim();

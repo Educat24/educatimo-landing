@@ -8,7 +8,8 @@
     var SUPPORTED = ['ru', 'uk', 'en', 'pl', 'cs'];
 
     function normalize(code) {
-        if (code === 'ua') return 'uk';
+        if (code === 'ua' || code === 'uk') return 'uk';
+        if (code === 'cz') return 'cs';
         return code;
     }
 
@@ -18,7 +19,8 @@
         var seg = parts[0];
         if (seg) {
             seg = seg.toLowerCase();
-            if (seg === 'ua' || seg === 'uk') return 'uk';
+            if (seg.indexOf('.') !== -1) seg = seg.split('.')[0];
+            seg = normalize(seg);
             if (SUPPORTED.indexOf(seg) !== -1) return seg;
         }
         var htmlLang = document.documentElement.getAttribute('lang');
