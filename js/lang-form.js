@@ -34,8 +34,17 @@
         return 'en';
     }
 
+    function getFormLang(form) {
+        var explicit = form.getAttribute('data-lang');
+        if (explicit) {
+            var code = normalize(String(explicit).trim().toLowerCase());
+            if (SUPPORTED.indexOf(code) !== -1) return code;
+        }
+        return getPageLang();
+    }
+
     function ensureFormLang(form) {
-        var lang = getPageLang();
+        var lang = getFormLang(form);
         var input = form.querySelector('input[name="lang"]');
         if (!input) {
             input = document.createElement('input');
