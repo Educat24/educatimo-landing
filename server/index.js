@@ -133,6 +133,12 @@ const initDb = async () => {
                 center_name VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'lang') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN lang VARCHAR(10);
+                END IF;
+            END $$;
 
             CREATE TABLE IF NOT EXISTS articles (
                 id SERIAL PRIMARY KEY,
@@ -178,8 +184,16 @@ const initDb = async () => {
 
 initDb();
 
+// Display label for lang code in admin email (e.g. RU, PL, EN).
+const LANG_LABELS = { ru: 'RU', uk: 'UK', en: 'EN', pl: 'PL', cs: 'CZ' };
+function getLangLabel(lang) {
+    if (!lang || typeof lang !== 'string') return '—';
+    const code = lang.toLowerCase().trim();
+    return LANG_LABELS[code] || code.toUpperCase();
+}
+
 // Send registration notification to owner. Uses env: RECIPIENT_EMAIL, EMAIL_USER, EMAIL_PASS (or GMAIL_USER, GMAIL_APP_PASSWORD).
-async function sendRegistrationEmail(email, center_name) {
+async function sendRegistrationEmail(email, center_name, lang) {
     const to = process.env.RECIPIENT_EMAIL || 'svetlichnyioleksiy@gmail.com';
     const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
     const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
@@ -187,6 +201,7 @@ async function sendRegistrationEmail(email, center_name) {
         console.warn('Registration email skipped: set EMAIL_USER and EMAIL_PASS (or GMAIL_USER and GMAIL_APP_PASSWORD) in .env');
         return null;
     }
+    const langLabel = getLangLabel(lang);
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user, pass }
@@ -195,8 +210,8 @@ async function sendRegistrationEmail(email, center_name) {
         from: user,
         to,
         subject: 'Neuro Educatimo: новая заявка в лист ожидания',
-        text: `Новая регистрация в пилот:\n\nEmail: ${email}\nНазвание центра: ${center_name}\n\nДата: ${new Date().toISOString()}`,
-        html: `<p>Новая регистрация в пилот:</p><ul><li><strong>Email:</strong> ${email}</li><li><strong>Название центра:</strong> ${center_name}</li></ul><p>Дата: ${new Date().toISOString()}</p>`
+        text: `Новая регистрация в пилот:\n\nEmail: ${email}\nНазвание центра: ${center_name}\nЯзык: ${langLabel}\n\nДата: ${new Date().toISOString()}`,
+        html: `<p>Новая регистрация в пилот:</p><ul><li><strong>Email:</strong> ${email}</li><li><strong>Название центра:</strong> ${center_name}</li><li><strong>Язык:</strong> ${langLabel}</li></ul><p>Дата: ${new Date().toISOString()}</p>`
     });
     console.log('Registration email sent to', to);
     return true;
@@ -204,7 +219,7 @@ async function sendRegistrationEmail(email, center_name) {
 
 // API Endpoint: save to DB and/or send email. Success if at least one works (so form works even when DB is unavailable on prod).
 app.post('/api/register', parseForm, async (req, res) => {
-    const { email, center_name } = req.body;
+    const { email, center_name, lang } = req.body;
 
     if (!email || !center_name) {
         return res.status(400).json({ error: 'Email and Center Name are required' });
@@ -215,8 +230,8 @@ app.post('/api/register', parseForm, async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO landing_waitlist (email, center_name) VALUES ($1, $2) RETURNING *',
-            [email, center_name]
+            'INSERT INTO landing_waitlist (email, center_name, lang) VALUES ($1, $2, $3) RETURNING *',
+            [email, center_name, lang || null]
         );
         dbOk = true;
     } catch (err) {
@@ -224,7 +239,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     }
 
     try {
-        const sent = await sendRegistrationEmail(email, center_name);
+        const sent = await sendRegistrationEmail(email, center_name, lang);
         if (sent) emailOk = true;
     } catch (err) {
         console.error('Error sending registration email:', err.message || err);
