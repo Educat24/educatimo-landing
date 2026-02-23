@@ -166,23 +166,6 @@
                 </div>
             </div>
 
-            <h3 class="text-center mb-40" style="margin-top: 50px; font-size: 2em; color: var(--primary-color);">Neuro
-                Educatimo: Váš kompas ve světě kognitivního rozvoje.</h3>
-            <p class="text-center"
-                style="max-width: 800px; margin: 0 auto 50px auto; font-size: 1.1em; color: var(--text-color-dark);">
-                Vytvořili jsme platformu, která převádí složitá data o kognitivním rozvoji do srozumitelných a názorných
-                grafů. Nyní můžete vidět, měřit a účinně ovlivňovat pokrok každého dítěte.</p>
-
-            <img src="/img/solution-image.jpg" alt="Vizualizace řešení Neuro Educatimo" class="problem-solution-image">
-
-            <div class="video-description" style="max-width: 800px; margin: 30px auto 0 auto;">
-                <ul style="text-align: left;">
-                    <li><b>Herní formát:</b> Poutavá hra místo nudného testu.</li>
-                    <li><b>Pouze 30 minut:</b> Hluboký neuropsychologický screening bez ztráty výukového času.</li>
-                    <li><b>Škálovatelnost:</b> Testujte jednotlivě, celými skupinami nebo online.</li>
-                    <li><b>Dynamika:</b> Systém ukazuje trajektorii rozvoje, ne jen známku.</li>
-                </ul>
-            </div>
         </div>
     </section>
 
@@ -234,6 +217,52 @@
                     <p>Neuro Educatimo: výsledek, který lze měřit. Zaregistrujte se a získejte měsíc bezplatného
                         přístupu.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2>Neuro Educatimo: Váš kompas ve světě kognitivního rozvoje.</h2>
+                <p class="demo-sub">Co dostane vaše centrum a rodiče</p>
+                <p>Zpráva s kognitivním profilem dítěte — pod značkou vaší školy. Panel pedagoga s dynamikou rozvoje každého žáka.</p>
+            </div>
+
+            <div class="demo-slider-wrap">
+                <div class="demo-slider-track">
+                    <div class="demo-slides">
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/cs-1.png" alt="Zpráva: výsledky testu kognitivních funkcí" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/cs-2.png" alt="Zpráva: doporučení pro rozvoj dítěte" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/cs-3.png" alt="Zpráva: kognitivní mapa a dynamika rozvoje" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/cs-4.png" alt="Ovládací panel: statistiky žáka" loading="lazy">
+                            <div class="demo-slide-caption">🇨🇿 Takto vypadá panel pedagoga zevnitř</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="demo-arrow prev" aria-label="Předchozí">&#8249;</button>
+                <button class="demo-arrow next" aria-label="Další">&#8250;</button>
+                <div class="demo-dots"></div>
+            </div>
+
+            <div class="demo-features">
+                <ul>
+                    <li><b>Herní formát:</b> Poutavá hra místo nudného testu.</li>
+                    <li><b>Pouze 30 minut:</b> Hluboký neuropsychologický screening bez ztráty výukového času.</li>
+                    <li><b>Škálovatelnost:</b> Testujte jednotlivě, celými skupinami nebo online.</li>
+                    <li><b>Dynamika:</b> Systém ukazuje trajektorii rozvoje, ne jen známku.</li>
+                </ul>
+            </div>
+
+            <div class="demo-cta">
+                <a href="#registration" class="btn">Získejte měsíc zdarma →</a>
             </div>
         </div>
     </section>
@@ -505,16 +534,36 @@
 
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-cz" data-lang="cs">
-                    <label for="email-cz">Váš Email</label>
+                    <input type="hidden" name="source" value="landing_form">
+
+                    <label for="org-name-cz">Název organizace</label>
+                    <input type="text" id="org-name-cz" name="org_name" placeholder="Vzdělávací centrum «Slunečko»" required>
+
+                    <label for="email-cz">Email</label>
                     <input type="email" id="email-cz" name="email" placeholder="email@example.com" required>
 
-                    <label for="center-name-cz">Název vašeho vzdělávacího centra</label>
-                    <input type="text" id="center-name-cz" name="center_name" placeholder="Příklad: 'Chytré dítě'"
-                        required>
+                    <label for="phone-cz">Telefon</label>
+                    <input type="tel" id="phone-cz" name="phone" placeholder="+420 XXX XXX XXX" required>
+
+                    <label for="org-type-cz">Typ instituce</label>
+                    <select id="org-type-cz" name="org_type" required>
+                        <option value="" disabled selected>— Vyberte typ —</option>
+                        <option value="center">Vzdělávací centrum</option>
+                        <option value="school">Škola nebo gymnázium</option>
+                        <option value="neuro">Neuropsychologické centrum</option>
+                        <option value="other">Jiné</option>
+                    </select>
+
+                    <label for="students-cz">Počet žáků</label>
+                    <select id="students-cz" name="students_count" required>
+                        <option value="" disabled selected>— Vyberte počet —</option>
+                        <option value="lt50">Do 50 žáků</option>
+                        <option value="50to200">50–200 žáků</option>
+                        <option value="gt200">Více než 200 žáků</option>
+                    </select>
 
                     <button type="submit" class="btn">Zavést přístup založený na důkazech</button>
-                    <p class="small-text">Oznámíme vám e-mailem, jakmile bude platforma připravena ke spuštění pilotní
-                        skupiny. Účast v pilotu je zdarma a nezavazuje k žádným závazkům.</p>
+                    <p class="small-text">Odesláním žádosti souhlasíte s podmínkami účasti v pilotním programu. Účast je zdarma a nezavazuje k žádným závazkům.</p>
                     <div id="form-message-cz" style="margin-top: 15px;"></div>
                 </form>
             </div>
@@ -529,6 +578,7 @@
         </div>
     </footer>
 
+    <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
     <script>
         // Změněny ID formuláře a zprávy, aby se zabránilo konfliktům
@@ -559,7 +609,7 @@
                     // Úspěch!
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Děkujeme za registraci! Brzy vás budeme kontaktovat.";
+                    messageDiv.innerText = "Děkujeme! Přijali jsme vaši žádost. Během několika hodin obdržíte email s přístupem k platformě.";
                     messageDiv.style.color = "var(--accent-color)";
                     if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {

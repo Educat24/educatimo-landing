@@ -166,23 +166,6 @@
                 </div>
             </div>
 
-            <h3 class="text-center mb-40" style="margin-top: 50px; font-size: 2em; color: var(--primary-color);">Neuro
-                Educatimo: Ваш компас у світі когнітивного розвитку.</h3>
-            <p class="text-center"
-                style="max-width: 800px; margin: 0 auto 50px auto; font-size: 1.1em; color: var(--text-color-dark);">Ми
-                створили платформу, яка перетворює складні дані про когнітивний розвиток на зрозумілі та наочні графіки.
-                Тепер ви можете бачити, вимірювати та ефективно впливати на прогрес кожної дитини.</p>
-
-            <img src="/img/solution-image.jpg" alt="Візуалізація рішення Neuro Educatimo" class="problem-solution-image">
-
-            <div class="video-description" style="max-width: 800px; margin: 30px auto 0 auto;">
-                <ul style="text-align: left;">
-                    <li><b>Ігровий формат:</b> Захопливий квест замість нудного іспиту.</li>
-                    <li><b>Всього 30 хвилин:</b> Глибокий нейропсихологічний зріз без втрати навчального часу.</li>
-                    <li><b>Масштабованість:</b> Тестуйте індивідуально, цілими групами або онлайн.</li>
-                    <li><b>Динаміка:</b> Система показує трек розвитку, а не просто оцінку.</li>
-                </ul>
-            </div>
         </div>
     </section>
 
@@ -234,6 +217,52 @@
                     <p>Neuro Educatimo: результат, який можна виміряти. Реєструйтеся і отримайте місяць безкоштовного
                         доступу.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2>Neuro Educatimo: Ваш компас у світі когнітивного розвитку.</h2>
+                <p class="demo-sub">Що отримує ваш центр і ваші батьки</p>
+                <p>Звіт з когнітивним профілем дитини — під брендом вашої школи. Кабінет педагога з динамікою розвитку кожного учня.</p>
+            </div>
+
+            <div class="demo-slider-wrap">
+                <div class="demo-slider-track">
+                    <div class="demo-slides">
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/uk-1.png" alt="Звіт: результати тестування когнітивних функцій" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/uk-2.png" alt="Звіт: рекомендації для розвитку дитини" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/uk-3.png" alt="Звіт: когнітивна карта та динаміка розвитку" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/uk-4.png" alt="Адмінпанель: статистика учня" loading="lazy">
+                            <div class="demo-slide-caption">🇺🇦 Так виглядає кабінет педагога зсередини</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="demo-arrow prev" aria-label="Попередній">&#8249;</button>
+                <button class="demo-arrow next" aria-label="Наступний">&#8250;</button>
+                <div class="demo-dots"></div>
+            </div>
+
+            <div class="demo-features">
+                <ul>
+                    <li><b>Ігровий формат:</b> Захопливий квест замість нудного іспиту.</li>
+                    <li><b>Всього 30 хвилин:</b> Глибокий нейропсихологічний зріз без втрати навчального часу.</li>
+                    <li><b>Масштабованість:</b> Тестуйте індивідуально, цілими групами або онлайн.</li>
+                    <li><b>Динаміка:</b> Система показує трек розвитку, а не просто оцінку.</li>
+                </ul>
+            </div>
+
+            <div class="demo-cta">
+                <a href="#registration" class="btn">Отримати місяць безкоштовно →</a>
             </div>
         </div>
     </section>
@@ -507,16 +536,36 @@
 
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-ua" data-lang="uk">
-                    <label for="email-ua">Ваш Email</label>
+                    <input type="hidden" name="source" value="landing_form">
+
+                    <label for="org-name-ua">Назва організації</label>
+                    <input type="text" id="org-name-ua" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
+
+                    <label for="email-ua">Email</label>
                     <input type="email" id="email-ua" name="email" placeholder="email@example.com" required>
 
-                    <label for="center-name-ua">Назва вашого навчального центру</label>
-                    <input type="text" id="center-name-ua" name="center_name" placeholder="Наприклад: 'Розумна дитина'"
-                        required>
+                    <label for="phone-ua">Телефон</label>
+                    <input type="tel" id="phone-ua" name="phone" placeholder="+380 XX XXX XX XX" required>
+
+                    <label for="org-type-ua">Тип закладу</label>
+                    <select id="org-type-ua" name="org_type" required>
+                        <option value="" disabled selected>— Оберіть тип —</option>
+                        <option value="center">Навчальний центр</option>
+                        <option value="school">Школа або гімназія</option>
+                        <option value="neuro">Нейропсихологічний центр</option>
+                        <option value="other">Інше</option>
+                    </select>
+
+                    <label for="students-ua">Кількість учнів</label>
+                    <select id="students-ua" name="students_count" required>
+                        <option value="" disabled selected>— Оберіть кількість —</option>
+                        <option value="lt50">До 50 учнів</option>
+                        <option value="50to200">50–200 учнів</option>
+                        <option value="gt200">Більше 200 учнів</option>
+                    </select>
 
                     <button type="submit" class="btn">Впровадити доказовий підхід</button>
-                    <p class="small-text">Ми повідомимо вам електронною поштою, як тільки платформа буде готова до
-                        запуску пілотної групи. Участь у пілоті безкоштовна і не накладає жодних зобов'язань.</p>
+                    <p class="small-text">Надсилаючи заявку, ви погоджуєтесь з умовами участі в пілотній програмі. Участь безкоштовна і не накладає жодних зобов'язань.</p>
                     <div id="form-message-ua" style="margin-top: 15px;"></div>
                 </form>
             </div>
@@ -531,6 +580,7 @@
         </div>
     </footer>
 
+    <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
     <script>
         // Змінено ID форми та повідомлення для уникнення конфліктів
@@ -558,19 +608,16 @@
                 });
 
                 if (response.ok) {
-                    // Успіх!
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Дякуємо за реєстрацію! Ми зв'яжемося з вами найближчим часом.";
+                    messageDiv.innerText = "Дякуємо! Ми отримали вашу заявку. Протягом кількох годин на вашу пошту надійде лист із доступом до платформи.";
                     messageDiv.style.color = "var(--accent-color)";
                     if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
-                    // Помилка
                     throw new Error('Network response was not ok.');
                 }
             } catch (error) {
-                // Показываем ошибку
-                messageDiv.innerText = "Сталася помилка. Спробуйте ще раз.";
+                messageDiv.innerText = "Виникла помилка. Спробуйте ще раз.";
                 messageDiv.style.color = "red";
                 button.disabled = false;
                 button.innerText = "Впровадити доказовий підхід";

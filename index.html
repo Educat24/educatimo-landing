@@ -162,23 +162,6 @@
                 </div>
             </div>
 
-            <h3 class="text-center mb-40" style="margin-top: 50px; font-size: 2em; color: var(--primary-color);">Neuro
-                Educatimo: Ваш компас в мире когнитивного развития.</h3>
-            <p class="text-center"
-                style="max-width: 800px; margin: 0 auto 50px auto; font-size: 1.1em; color: var(--text-color-dark);">Мы
-                создали платформу, которая превращает сложные данные о когнитивном развитии в понятные и наглядные
-                графики. Теперь вы можете видеть, измерять и эффективно влиять на прогресс каждого ребенка.</p>
-
-            <img src="img/solution-image.jpg" alt="Визуализация решения Neuro Educatimo" class="problem-solution-image">
-
-            <div class="video-description" style="max-width: 800px; margin: 30px auto 0 auto;">
-                <ul style="text-align: left;">
-                    <li><b>Игровой формат:</b> Увлекательный квест вместо скучного экзамена.</li>
-                    <li><b>Всего 30 минут:</b> Глубокий нейропсихологический срез без потери учебного времени.</li>
-                    <li><b>Масштабируемость:</b> Тестируйте индивидуально, целыми группами или онлайн.</li>
-                    <li><b>Динамика:</b> Система показывает трек развития, а не просто оценку.</li>
-                </ul>
-            </div>
         </div>
     </section>
 
@@ -230,6 +213,52 @@
                     <p>Neuro Educatimo: результат, который можно измерить. Регистрируйтесь и получите месяц бесплатного
                         доступа.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2>Neuro Educatimo: Ваш компас в мире когнитивного развития.</h2>
+                <p class="demo-sub">Что получает ваш центр и ваши родители</p>
+                <p>Отчёт с когнитивным профилем ребёнка — под брендом вашей школы. Кабинет педагога с динамикой развития каждого ученика.</p>
+            </div>
+
+            <div class="demo-slider-wrap">
+                <div class="demo-slider-track">
+                    <div class="demo-slides">
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/ru-1.png" alt="Отчёт: результаты тестирования когнитивных функций" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/ru-2.png" alt="Отчёт: рекомендации для развития ребёнка" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/ru-3.png" alt="Отчёт: когнитивная карта и динамика развития" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/ru-4.png" alt="Админпанель: статистика ученика" loading="lazy">
+                            <div class="demo-slide-caption">🇷🇺 Так выглядит кабинет педагога изнутри</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="demo-arrow prev" aria-label="Предыдущий">&#8249;</button>
+                <button class="demo-arrow next" aria-label="Следующий">&#8250;</button>
+                <div class="demo-dots"></div>
+            </div>
+
+            <div class="demo-features">
+                <ul>
+                    <li><b>Игровой формат:</b> Увлекательный квест вместо скучного экзамена.</li>
+                    <li><b>Всего 30 минут:</b> Глубокий нейропсихологический срез без потери учебного времени.</li>
+                    <li><b>Масштабируемость:</b> Тестируйте индивидуально, целыми группами или онлайн.</li>
+                    <li><b>Динамика:</b> Система показывает трек развития, а не просто оценку.</li>
+                </ul>
+            </div>
+
+            <div class="demo-cta">
+                <a href="#registration" class="btn">Получить месяц бесплатно →</a>
             </div>
         </div>
     </section>
@@ -510,16 +539,36 @@
 
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form" data-lang="ru">
-                    <label for="email">Ваш Email</label>
+                    <input type="hidden" name="source" value="landing_form">
+
+                    <label for="org-name">Название организации</label>
+                    <input type="text" id="org-name" name="org_name" placeholder="Центр развития «Умный ребёнок»" required>
+
+                    <label for="email">Email</label>
                     <input type="email" id="email" name="email" placeholder="email@example.com" required>
 
-                    <label for="center-name">Название вашего учебного центра</label>
-                    <input type="text" id="center-name" name="center_name" placeholder="Например: 'Умный ребенок'"
-                        required>
+                    <label for="phone">Телефон</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+7 XXX XXX XX XX" required>
+
+                    <label for="org-type">Тип заведения</label>
+                    <select id="org-type" name="org_type" required>
+                        <option value="" disabled selected>— Выберите тип —</option>
+                        <option value="center">Учебный центр</option>
+                        <option value="school">Школа или гимназия</option>
+                        <option value="neuro">Нейропсихологический центр</option>
+                        <option value="other">Другое</option>
+                    </select>
+
+                    <label for="students">Количество учеников</label>
+                    <select id="students" name="students_count" required>
+                        <option value="" disabled selected>— Выберите количество —</option>
+                        <option value="lt50">До 50 учеников</option>
+                        <option value="50to200">50–200 учеников</option>
+                        <option value="gt200">Более 200 учеников</option>
+                    </select>
 
                     <button type="submit" class="btn">Внедрить доказательный подход</button>
-                    <p class="small-text">Мы уведомим вас по электронной почте, как только платформа будет готова к
-                        запуску пилотной группы. Участие в пилоте бесплатно и не накладывает никаких обязательств.</p>
+                    <p class="small-text">Отправляя заявку, вы соглашаетесь с условиями участия в пилотной программе. Участие бесплатно и не накладывает никаких обязательств.</p>
                     <div id="form-message" style="margin-top: 15px;"></div>
                 </form>
             </div>
@@ -534,6 +583,7 @@
         </div>
     </footer>
 
+    <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
     <script>
         // Находим нашу форму по ID, который мы добавили
@@ -561,16 +611,13 @@
                     }
                 });
 
-                // Обрабатываем ответ
                 if (response.ok) {
-                    // Успех!
-                    form.reset(); // Очищаем поля формы
-                    button.style.display = 'none'; // Прячем кнопку
-                    messageDiv.innerText = "Спасибо за регистрацию! Мы свяжемся с вами в ближайшее время.";
+                    form.reset();
+                    button.style.display = 'none';
+                    messageDiv.innerText = "Спасибо! Мы получили вашу заявку. В течение нескольких часов на вашу почту придёт письмо с доступом к платформе.";
                     messageDiv.style.color = "var(--accent-color)";
                     if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
-                    // Ошибка
                     throw new Error('Network response was not ok.');
                 }
             } catch (error) {

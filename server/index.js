@@ -82,7 +82,7 @@ const LOCALE_MAP = { ru: '/ru/', uk: '/uk/', en: '/en/', pl: '/pl/', cs: '/cs/' 
 app.get('/', (req, res) => {
     const acceptLanguage = (req.get('Accept-Language') || '').toLowerCase();
     const preferred = acceptLanguage.split(',')[0].trim().split('-')[0];
-    const target = LOCALE_MAP[preferred] || LOCALE_MAP.en;
+    const target = LOCALE_MAP[preferred] || LOCALE_MAP.uk;
     res.redirect(302, target);
 });
 
@@ -93,6 +93,10 @@ LANGS.forEach(lang => {
     app.get(`/${lang}/team`, (req, res) => res.sendFile(path.join(__dirname, '..', lang, 'team.html')));
     app.get(`/${lang}`, (req, res) => res.redirect(302, `/${lang}/`));
 });
+
+// Quiz page (UK only for now)
+app.get('/uk/quiz', (req, res) => res.sendFile(path.join(__dirname, '..', 'uk', 'quiz.html')));
+app.get('/uk/quiz/', (req, res) => res.redirect(301, '/uk/quiz'));
 
 // Serve static files (style.css, img/, favicon, etc.)
 app.use(express.static(path.join(__dirname, '..'), { extensions: ['html'] }));
@@ -137,6 +141,21 @@ const initDb = async () => {
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'lang') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN lang VARCHAR(10);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'phone') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN phone VARCHAR(50);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'org_type') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN org_type VARCHAR(50);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'students_count') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN students_count VARCHAR(50);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'source') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN source VARCHAR(50) DEFAULT 'landing_form';
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'quiz_answers') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN quiz_answers JSONB;
                 END IF;
             END $$;
 
@@ -193,7 +212,8 @@ function getLangLabel(lang) {
 }
 
 // Send registration notification to owner. Uses env: RECIPIENT_EMAIL, EMAIL_USER, EMAIL_PASS (or GMAIL_USER, GMAIL_APP_PASSWORD).
-async function sendRegistrationEmail(email, center_name, lang) {
+async function sendRegistrationEmail(data) {
+    const { email, center_name, lang, phone, org_type, students_count, source, quiz_answers } = data;
     const to = process.env.RECIPIENT_EMAIL || 'svetlichnyioleksiy@gmail.com';
     const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
     const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
@@ -202,16 +222,35 @@ async function sendRegistrationEmail(email, center_name, lang) {
         return null;
     }
     const langLabel = getLangLabel(lang);
+    const sourceLabel = source === 'quiz' ? 'Квиз (/uk/quiz)' : 'Лендинг (форма регистрации)';
+    const orgTypeMap = { center: 'Навч. центр / Learning center', school: 'Школа / School', neuro: 'Нейропсихол. центр / Neuropsych. center', other: 'Інше / Other' };
+    const studentsMap = { lt50: 'До 50 учнів', '50to200': '50–200 учнів', gt200: 'Більше 200 учнів' };
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user, pass }
     });
+    const quizSection = quiz_answers
+        ? `\n\nВідповіді квізу:\n${Object.entries(quiz_answers).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`
+        : '';
+    const quizHtml = quiz_answers
+        ? `<tr><td><strong>Відповіді квізу:</strong></td><td><pre style="font-size:12px">${JSON.stringify(quiz_answers, null, 2)}</pre></td></tr>`
+        : '';
     await transporter.sendMail({
         from: user,
         to,
-        subject: 'Neuro Educatimo: новая заявка в лист ожидания',
-        text: `Новая регистрация в пилот:\n\nEmail: ${email}\nНазвание центра: ${center_name}\nЯзык: ${langLabel}\n\nДата: ${new Date().toISOString()}`,
-        html: `<p>Новая регистрация в пилот:</p><ul><li><strong>Email:</strong> ${email}</li><li><strong>Название центра:</strong> ${center_name}</li><li><strong>Язык:</strong> ${langLabel}</li></ul><p>Дата: ${new Date().toISOString()}</p>`
+        subject: `Нова реєстрація: ${center_name}`,
+        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${quizSection}`,
+        html: `<table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
+            <tr><td style="padding:6px 12px;color:#666">Організація:</td><td style="padding:6px 12px"><strong>${center_name}</strong></td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Email:</td><td style="padding:6px 12px">${email}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Телефон:</td><td style="padding:6px 12px">${phone || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Тип закладу:</td><td style="padding:6px 12px">${orgTypeMap[org_type] || org_type || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">К-сть учнів:</td><td style="padding:6px 12px">${studentsMap[students_count] || students_count || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Мова:</td><td style="padding:6px 12px">${langLabel}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Джерело:</td><td style="padding:6px 12px">${sourceLabel}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Дата:</td><td style="padding:6px 12px">${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}</td></tr>
+            ${quizHtml}
+        </table>`
     });
     console.log('Registration email sent to', to);
     return true;
@@ -219,10 +258,21 @@ async function sendRegistrationEmail(email, center_name, lang) {
 
 // API Endpoint: save to DB and/or send email. Success if at least one works (so form works even when DB is unavailable on prod).
 app.post('/api/register', parseForm, async (req, res) => {
-    const { email, center_name, lang } = req.body;
+    const { email, lang } = req.body;
+    // Support both old field name (center_name) and new (org_name)
+    const center_name = req.body.org_name || req.body.center_name;
+    const phone = req.body.phone || null;
+    const org_type = req.body.org_type || null;
+    const students_count = req.body.students_count || null;
+    const source = req.body.source || 'landing_form';
+    // quiz_answers may be sent as JSON string from quiz page
+    let quiz_answers = null;
+    if (req.body.quiz_answers) {
+        try { quiz_answers = JSON.parse(req.body.quiz_answers); } catch (_) { quiz_answers = req.body.quiz_answers; }
+    }
 
     if (!email || !center_name) {
-        return res.status(400).json({ error: 'Email and Center Name are required' });
+        return res.status(400).json({ error: 'Email and Organization Name are required' });
     }
 
     let dbOk = false;
@@ -230,8 +280,9 @@ app.post('/api/register', parseForm, async (req, res) => {
 
     try {
         await pool.query(
-            'INSERT INTO landing_waitlist (email, center_name, lang) VALUES ($1, $2, $3) RETURNING *',
-            [email, center_name, lang || null]
+            `INSERT INTO landing_waitlist (email, center_name, lang, phone, org_type, students_count, source, quiz_answers)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+            [email, center_name, lang || null, phone, org_type, students_count, source, quiz_answers ? JSON.stringify(quiz_answers) : null]
         );
         dbOk = true;
     } catch (err) {
@@ -239,7 +290,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     }
 
     try {
-        const sent = await sendRegistrationEmail(email, center_name, lang);
+        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, org_type, students_count, source, quiz_answers });
         if (sent) emailOk = true;
     } catch (err) {
         console.error('Error sending registration email:', err.message || err);

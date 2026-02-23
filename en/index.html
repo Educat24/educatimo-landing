@@ -166,24 +166,6 @@
                 </div>
             </div>
 
-            <h3 class="text-center mb-40" style="margin-top: 50px; font-size: 2em; color: var(--primary-color);">Neuro
-                Educatimo: Your compass in the world of cognitive development.</h3>
-            <p class="text-center"
-                style="max-width: 800px; margin: 0 auto 50px auto; font-size: 1.1em; color: var(--text-color-dark);">We
-                created a platform that transforms complex cognitive development data into clear and intuitive charts.
-                Now you can see, measure, and effectively influence the progress of every child.</p>
-
-            <img src="/img/solution-image.jpg" alt="Visualization of the Neuro Educatimo solution"
-                class="problem-solution-image">
-
-            <div class="video-description" style="max-width: 800px; margin: 30px auto 0 auto;">
-                <ul style="text-align: left;">
-                    <li><b>Game format:</b> An engaging quest instead of a boring exam.</li>
-                    <li><b>Just 30 minutes:</b> Deep neuropsychological screening without losing class time.</li>
-                    <li><b>Scalability:</b> Test individually, in whole groups, or online.</li>
-                    <li><b>Dynamics:</b> The system shows a development track, not just a grade.</li>
-                </ul>
-            </div>
         </div>
     </section>
 
@@ -234,6 +216,52 @@
                         data.</p>
                     <p>Neuro Educatimo: results you can measure. Sign up and get a month of free access.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2>Neuro Educatimo: Your compass in the world of cognitive development.</h2>
+                <p class="demo-sub">What your center and parents receive</p>
+                <p>A report with the child's cognitive profile — under your school's brand. A teacher dashboard with each student's development dynamics.</p>
+            </div>
+
+            <div class="demo-slider-wrap">
+                <div class="demo-slider-track">
+                    <div class="demo-slides">
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/en-1.png" alt="Report: cognitive functions test results" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/en-2.png" alt="Report: personal development recommendations" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/en-3.png" alt="Report: cognitive map and development dynamics" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/en-4.png" alt="Control Panel: student statistics" loading="lazy">
+                            <div class="demo-slide-caption">🇬🇧 This is what the teacher's dashboard looks like</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="demo-arrow prev" aria-label="Previous">&#8249;</button>
+                <button class="demo-arrow next" aria-label="Next">&#8250;</button>
+                <div class="demo-dots"></div>
+            </div>
+
+            <div class="demo-features">
+                <ul>
+                    <li><b>Game format:</b> An engaging quest instead of a boring exam.</li>
+                    <li><b>Just 30 minutes:</b> Deep neuropsychological screening without losing class time.</li>
+                    <li><b>Scalability:</b> Test individually, in whole groups, or online.</li>
+                    <li><b>Dynamics:</b> The system shows a development track, not just a grade.</li>
+                </ul>
+            </div>
+
+            <div class="demo-cta">
+                <a href="#registration" class="btn">Get one month free →</a>
             </div>
         </div>
     </section>
@@ -509,12 +537,33 @@
 
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-en" data-lang="en">
-                    <label for="email-en">Your Email</label>
+                    <input type="hidden" name="source" value="landing_form">
+
+                    <label for="org-name-en">Organization name</label>
+                    <input type="text" id="org-name-en" name="org_name" placeholder="Learning Center «Bright Minds»" required>
+
+                    <label for="email-en">Email</label>
                     <input type="email" id="email-en" name="email" placeholder="email@example.com" required>
 
-                    <label for="center-name-en">Name of your learning center</label>
-                    <input type="text" id="center-name-en" name="center_name"
-                        placeholder="Example: 'Smart Child Center'" required>
+                    <label for="phone-en">Phone</label>
+                    <input type="tel" id="phone-en" name="phone" placeholder="+1 XXX XXX XXXX" required>
+
+                    <label for="org-type-en">Type of institution</label>
+                    <select id="org-type-en" name="org_type" required>
+                        <option value="" disabled selected>— Select type —</option>
+                        <option value="center">Learning center</option>
+                        <option value="school">School or gymnasium</option>
+                        <option value="neuro">Neuropsychological center</option>
+                        <option value="other">Other</option>
+                    </select>
+
+                    <label for="students-en">Number of students</label>
+                    <select id="students-en" name="students_count" required>
+                        <option value="" disabled selected>— Select number —</option>
+                        <option value="lt50">Up to 50 students</option>
+                        <option value="50to200">50–200 students</option>
+                        <option value="gt200">More than 200 students</option>
+                    </select>
 
                     <button type="submit" class="btn">Implement evidence-based approach</button>
                     <p class="small-text">We will notify you by email as soon as the platform is ready for the pilot
@@ -533,6 +582,7 @@
         </div>
     </footer>
 
+    <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
     <script>
         // Changed form and message IDs to avoid conflicts
@@ -560,18 +610,15 @@
                 });
 
                 if (response.ok) {
-                    // Success!
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Thank you for registering! We will contact you shortly.";
+                    messageDiv.innerText = "Thank you! We've received your application. Within a few hours you'll get an email with access to the platform.";
                     messageDiv.style.color = "var(--accent-color)";
                     if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
-                    // Error
                     throw new Error('Network response was not ok.');
                 }
             } catch (error) {
-                // Show error
                 messageDiv.innerText = "An error occurred. Please try again.";
                 messageDiv.style.color = "red";
                 button.disabled = false;

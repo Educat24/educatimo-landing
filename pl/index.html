@@ -166,24 +166,6 @@
                 </div>
             </div>
 
-            <h3 class="text-center mb-40" style="margin-top: 50px; font-size: 2em; color: var(--primary-color);">Neuro
-                Educatimo: Twój kompas w świecie rozwoju poznawczego.</h3>
-            <p class="text-center"
-                style="max-width: 800px; margin: 0 auto 50px auto; font-size: 1.1em; color: var(--text-color-dark);">
-                Stworzyliśmy platformę, która przekształca złożone dane o rozwoju poznawczym w jasne i intuicyjne
-                wykresy. Teraz możesz widzieć, mierzyć i skutecznie wpływać na postęp każdego dziecka.</p>
-
-            <img src="/img/solution-image.jpg" alt="Wizualizacja rozwiązania Neuro Educatimo"
-                class="problem-solution-image">
-
-            <div class="video-description" style="max-width: 800px; margin: 30px auto 0 auto;">
-                <ul style="text-align: left;">
-                    <li><b>Format gry:</b> Wciągająca przygoda zamiast nudnego egzaminu.</li>
-                    <li><b>Zaledwie 30 minut:</b> Głębki screening neuropsychologiczny bez straty czasu lekcyjnego.</li>
-                    <li><b>Skalowalność:</b> Testuj indywidualnie, całymi grupami lub online.</li>
-                    <li><b>Dynamika:</b> System pokazuje ścieżkę rozwoju, a nie tylko ocenę.</li>
-                </ul>
-            </div>
         </div>
     </section>
 
@@ -235,6 +217,52 @@
                     <p>Neuro Educatimo: wynik, który można zmierzyć. Zarejestruj się i otrzymaj miesiąc bezpłatnego
                         dostępu.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo">
+        <div class="container">
+            <div class="section-header">
+                <h2>Neuro Educatimo: Twój kompas w świecie rozwoju poznawczego.</h2>
+                <p class="demo-sub">Co otrzymuje Twoje centrum i rodzice</p>
+                <p>Raport z profilem poznawczym dziecka — pod marką Twojej szkoły. Panel nauczyciela z dynamiką rozwoju każdego ucznia.</p>
+            </div>
+
+            <div class="demo-slider-wrap">
+                <div class="demo-slider-track">
+                    <div class="demo-slides">
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/pl-1.png" alt="Raport: wyniki testu funkcji poznawczych" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/pl-2.png" alt="Raport: rekomendacje rozwojowe dla dziecka" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/pl-3.png" alt="Raport: mapa poznawcza i dynamika rozwoju" loading="lazy">
+                        </div>
+                        <div class="demo-slide demo-slide--img">
+                            <img src="/img/demo/pl-4.png" alt="Panel sterowania: statystyki ucznia" loading="lazy">
+                            <div class="demo-slide-caption">🇵🇱 Tak wygląda panel nauczyciela od środka</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="demo-arrow prev" aria-label="Poprzedni">&#8249;</button>
+                <button class="demo-arrow next" aria-label="Następny">&#8250;</button>
+                <div class="demo-dots"></div>
+            </div>
+
+            <div class="demo-features">
+                <ul>
+                    <li><b>Format gry:</b> Wciągająca przygoda zamiast nudnego egzaminu.</li>
+                    <li><b>Zaledwie 30 minut:</b> Głębki screening neuropsychologiczny bez straty czasu lekcyjnego.</li>
+                    <li><b>Skalowalność:</b> Testuj indywidualnie, całymi grupami lub online.</li>
+                    <li><b>Dynamika:</b> System pokazuje ścieżkę rozwoju, a nie tylko ocenę.</li>
+                </ul>
+            </div>
+
+            <div class="demo-cta">
+                <a href="#registration" class="btn">Otrzymaj miesiąc za darmo →</a>
             </div>
         </div>
     </section>
@@ -511,17 +539,36 @@
 
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-pl" data-lang="pl">
-                    <label for="email-pl">Twój Email</label>
+                    <input type="hidden" name="source" value="landing_form">
+
+                    <label for="org-name-pl">Nazwa organizacji</label>
+                    <input type="text" id="org-name-pl" name="org_name" placeholder="Centrum Edukacji «Promyk»" required>
+
+                    <label for="email-pl">Email</label>
                     <input type="email" id="email-pl" name="email" placeholder="email@example.com" required>
 
-                    <label for="center-name-pl">Nazwa Twojego ośrodka edukacyjnego</label>
-                    <input type="text" id="center-name-pl" name="center_name" placeholder="Przykład: 'Mądre Dziecko'"
-                        required>
+                    <label for="phone-pl">Telefon</label>
+                    <input type="tel" id="phone-pl" name="phone" placeholder="+48 XXX XXX XXX" required>
+
+                    <label for="org-type-pl">Typ placówki</label>
+                    <select id="org-type-pl" name="org_type" required>
+                        <option value="" disabled selected>— Wybierz typ —</option>
+                        <option value="center">Centrum edukacyjne</option>
+                        <option value="school">Szkoła lub gimnazjum</option>
+                        <option value="neuro">Centrum neuropsychologiczne</option>
+                        <option value="other">Inne</option>
+                    </select>
+
+                    <label for="students-pl">Liczba uczniów</label>
+                    <select id="students-pl" name="students_count" required>
+                        <option value="" disabled selected>— Wybierz liczbę —</option>
+                        <option value="lt50">Do 50 uczniów</option>
+                        <option value="50to200">50–200 uczniów</option>
+                        <option value="gt200">Ponad 200 uczniów</option>
+                    </select>
 
                     <button type="submit" class="btn">Wdróż podejście oparte na dowodach</button>
-                    <p class="small-text">Powiadomimy Cię e-mailem, gdy tylko platforma będzie gotowa do uruchomienia
-                        grupy pilotażowej. Udział w pilotażu jest bezpłatny i nie wiąże się z żadnymi zobowiązaniami.
-                    </p>
+                    <p class="small-text">Wysyłając zgłoszenie, akceptujesz warunki uczestnictwa w programie pilotażowym. Udział jest bezpłatny i nie wiąże się z żadnymi zobowiązaniami.</p>
                     <div id="form-message-pl" style="margin-top: 15px;"></div>
                 </form>
             </div>
@@ -536,6 +583,7 @@
         </div>
     </footer>
 
+    <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
     <script>
         // Zmieniono ID formularza i komunikatu, aby uniknąć konfliktów
@@ -566,7 +614,7 @@
                     // Sukces!
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Dziękujemy za rejestrację! Skontaktujemy się z Tobą wkrótce.";
+                    messageDiv.innerText = "Dziękujemy! Otrzymaliśmy Twoje zgłoszenie. W ciągu kilku godzin otrzymasz email z dostępem do platformy.";
                     messageDiv.style.color = "var(--accent-color)";
                     if (typeof fbq === 'function') fbq('track', 'Lead');
                 } else {
