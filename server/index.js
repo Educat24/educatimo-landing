@@ -272,7 +272,7 @@ const BREVO_I18N = {
         tagline: 'Доказова освіта для вашого центру',
         signature: {
             regards:  'З повагою,',
-            name:     'Олексій Світличний',
+            name:     'Олексій Светлічний',
             title:    'CEO & Founder, Neuro.Educatimo',
             contacts: '+380503281224 · @alekssvet · neuro.educatimo.com',
             footer:   'Neuro.Educatimo · hello@neuro.educatimo.com',
