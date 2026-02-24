@@ -88,10 +88,7 @@ const isAdminApi = (req, res, next) => {
 // Root route: language detection and 302 redirect (SEO: root is router, no content)
 const LOCALE_MAP = { ru: '/ru/', uk: '/uk/', en: '/en/', pl: '/pl/', cs: '/cs/' };
 app.get('/', (req, res) => {
-    const acceptLanguage = (req.get('Accept-Language') || '').toLowerCase();
-    const preferred = acceptLanguage.split(',')[0].trim().split('-')[0];
-    const target = LOCALE_MAP[preferred] || LOCALE_MAP.uk;
-    res.redirect(302, target);
+    res.redirect(302, LOCALE_MAP.uk);
 });
 
 // New URL structure: /ru/, /en/, /uk/, /pl/, /cs/ (for local dev without nginx)
