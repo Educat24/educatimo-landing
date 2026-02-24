@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="uk" class="quiz-html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Квіз: Чи готові ваш центр до доказового навчання? — Neuro Educatimo</title>
+    <title>Квіз: Чи готовий ваш центр до доказового навчання? — Neuro Educatimo</title>
     <meta name="description" content="Пройдіть короткий квіз і дізнайтесь, наскільки ваш центр готовий перейти до доказового підходу в навчанні.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="/style.css">
@@ -11,94 +11,103 @@
 </head>
 <body class="quiz-page">
 
-<header class="quiz-header">
-    <div class="container">
+<div class="quiz-layout">
+
+    <!-- ── LEFT PANEL ── -->
+    <div class="quiz-panel-left">
         <a href="/uk/" class="quiz-logo">Neuro Educatimo</a>
+        <div class="quiz-panel-headline">Чи готовий ваш центр до доказового навчання?</div>
+        <div class="quiz-panel-sub">За 2 хвилини ви дізнаєтесь, де ваш центр зараз втрачає клієнтів і гроші — та як це виправити.</div>
+        <div class="quiz-panel-steps" id="panel-steps">
+            <!-- populated by JS -->
+        </div>
+        <div class="quiz-panel-deco">🧠</div>
     </div>
-</header>
 
-<main class="quiz-main">
-    <div class="quiz-card">
+    <!-- ── RIGHT PANEL ── -->
+    <div class="quiz-panel-right">
+        <div class="quiz-content">
 
-        <!-- Screen 0: Intro -->
-        <div class="quiz-screen active" id="screen-intro">
-            <div class="quiz-intro-title">Чи готовий ваш центр до доказового навчання?</div>
-            <p class="quiz-intro-desc">За 2 хвилини та 6 запитань ви дізнаєтесь, де ваш центр зараз і що потрібно змінити, щоб зупинити відтік клієнтів і збільшити LTV.</p>
-            <div class="quiz-meta">
-                <div class="quiz-meta-item"><i class="fas fa-clock"></i> 2 хвилини</div>
-                <div class="quiz-meta-item"><i class="fas fa-question-circle"></i> 6 запитань</div>
-                <div class="quiz-meta-item"><i class="fas fa-gift"></i> Безкоштовно</div>
+            <!-- Screen 0: Intro -->
+            <div class="quiz-screen active" id="screen-intro">
+                <div class="quiz-intro-title">Перевірте свій центр за 6 запитань</div>
+                <p class="quiz-intro-desc">Дізнайтесь, де ваш центр зараз втрачає клієнтів і гроші, та отримайте персональний план дій — безкоштовно.</p>
+                <div class="quiz-meta">
+                    <div class="quiz-meta-item"><i class="fas fa-clock"></i> 2 хвилини</div>
+                    <div class="quiz-meta-item"><i class="fas fa-list-ul"></i> 6 запитань</div>
+                    <div class="quiz-meta-item"><i class="fas fa-gift"></i> Безкоштовно</div>
+                </div>
+                <button class="btn" onclick="quizStart()">Розпочати →</button>
             </div>
-            <button class="btn" onclick="quizStart()">Розпочати квіз →</button>
-        </div>
 
-        <!-- Screens 1–6: Questions -->
-        <div class="quiz-screen" id="screen-questions">
-            <div class="quiz-progress-bar-wrap">
-                <div class="quiz-progress-bar" id="quiz-progress-bar" style="width: 0%"></div>
+            <!-- Screens 1–6: Questions -->
+            <div class="quiz-screen" id="screen-questions">
+                <div class="quiz-progress-bar-wrap">
+                    <div class="quiz-progress-bar" id="quiz-progress-bar" style="width: 0%"></div>
+                </div>
+                <div class="quiz-step-label" id="quiz-step-label">Запитання 1 з 6</div>
+                <div class="quiz-question" id="quiz-question-text"></div>
+                <div class="quiz-options" id="quiz-options"></div>
             </div>
-            <div class="quiz-step-label" id="quiz-step-label">Запитання 1 з 6</div>
-            <div class="quiz-question" id="quiz-question-text"></div>
-            <div class="quiz-options" id="quiz-options"></div>
-        </div>
 
-        <!-- Screen Final: Form -->
-        <div class="quiz-screen" id="screen-result">
-            <div class="quiz-result-title">Майже готово!</div>
-            <p class="quiz-result-desc">Залиште контакти — і ми надішлемо вам персоналізований звіт з результатами квізу та першими кроками для вашого центру.</p>
-            <div class="quiz-form-wrap" id="quiz-form-wrap">
-                <form id="quiz-form" action="/api/register" method="POST">
-                    <input type="hidden" name="source" value="quiz">
-                    <input type="hidden" name="lang" value="uk">
-                    <input type="hidden" name="quiz_answers" id="quiz-answers-input">
+            <!-- Screen Final: Form -->
+            <div class="quiz-screen" id="screen-result">
+                <div class="quiz-result-title">Майже готово!</div>
+                <p class="quiz-result-desc">Залиште контакти — і ми надішлемо персоналізований розбір з першими кроками для вашого центру.</p>
+                <div class="quiz-form-wrap" id="quiz-form-wrap">
+                    <form id="quiz-form" action="/api/register" method="POST">
+                        <input type="hidden" name="source" value="quiz">
+                        <input type="hidden" name="lang" value="uk">
+                        <input type="hidden" name="quiz_answers" id="quiz-answers-input">
 
-                    <label for="qf-org">Назва організації</label>
-                    <input type="text" id="qf-org" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
+                        <label for="qf-org">Назва організації</label>
+                        <input type="text" id="qf-org" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
 
-                    <label for="qf-email">Email</label>
-                    <input type="email" id="qf-email" name="email" placeholder="email@example.com" required>
+                        <label for="qf-email">Email</label>
+                        <input type="email" id="qf-email" name="email" placeholder="email@example.com" required>
 
-                    <label for="qf-phone">Телефон</label>
-                    <input type="tel" id="qf-phone" name="phone" placeholder="+380 XX XXX XX XX" required>
+                        <label for="qf-phone">Телефон</label>
+                        <input type="tel" id="qf-phone" name="phone" placeholder="+380 XX XXX XX XX" required>
 
-                    <label for="qf-type">Тип закладу</label>
-                    <select id="qf-type" name="org_type" required>
-                        <option value="" disabled selected>— Оберіть тип —</option>
-                        <option value="center">Навчальний центр</option>
-                        <option value="school">Школа або гімназія</option>
-                        <option value="neuro">Нейропсихологічний центр</option>
-                        <option value="other">Інше</option>
-                    </select>
+                        <label for="qf-type">Тип закладу</label>
+                        <select id="qf-type" name="org_type" required>
+                            <option value="" disabled selected>— Оберіть тип —</option>
+                            <option value="center">Навчальний центр</option>
+                            <option value="school">Школа або гімназія</option>
+                            <option value="neuro">Нейропсихологічний центр</option>
+                            <option value="other">Інше</option>
+                        </select>
 
-                    <label for="qf-students">Кількість учнів</label>
-                    <select id="qf-students" name="students_count" required>
-                        <option value="" disabled selected>— Оберіть кількість —</option>
-                        <option value="lt50">До 50 учнів</option>
-                        <option value="50to200">50–200 учнів</option>
-                        <option value="gt200">Більше 200 учнів</option>
-                    </select>
+                        <label for="qf-students">Кількість учнів</label>
+                        <select id="qf-students" name="students_count" required>
+                            <option value="" disabled selected>— Оберіть кількість —</option>
+                            <option value="lt50">До 50 учнів</option>
+                            <option value="50to200">50–200 учнів</option>
+                            <option value="gt200">Більше 200 учнів</option>
+                        </select>
 
-                    <button type="submit" class="btn" id="quiz-submit-btn">Отримати результати →</button>
-                    <div id="quiz-form-message"></div>
-                </form>
+                        <button type="submit" class="btn" id="quiz-submit-btn">Отримати результати →</button>
+                        <div id="quiz-form-message"></div>
+                    </form>
+                </div>
             </div>
-        </div>
 
-        <!-- Screen Success -->
-        <div class="quiz-screen" id="screen-success">
-            <span class="quiz-success-icon"><i class="fas fa-check-circle"></i></span>
-            <div class="quiz-success-title">Дякуємо!</div>
-            <div class="quiz-success-subtitle">Ваша заявка прийнята.</div>
-            <div class="quiz-success-body">
-                Протягом кількох годин на <span class="quiz-success-email" id="success-email"></span> надійде<br>
-                персоналізований звіт з результатами квізу<br>
-                та першими кроками для вашого центру.
+            <!-- Screen Success -->
+            <div class="quiz-screen" id="screen-success">
+                <span class="quiz-success-icon"><i class="fas fa-check-circle"></i></span>
+                <div class="quiz-success-title">Дякуємо!</div>
+                <div class="quiz-success-subtitle">Ваша заявка прийнята.</div>
+                <div class="quiz-success-body">
+                    Протягом кількох годин на <span class="quiz-success-email" id="success-email"></span> надійде
+                    персоналізований звіт з результатами квізу та першими кроками для вашого центру.
+                </div>
+                <div class="quiz-success-sign">З повагою, Команда Neuro.Educatimo</div>
             </div>
-            <div class="quiz-success-sign">З повагою, Команда Neuro.Educatimo</div>
-        </div>
 
+        </div>
     </div>
-</main>
+
+</div><!-- .quiz-layout -->
 
 <script>
 var QUESTIONS = [
@@ -158,8 +167,41 @@ var QUESTIONS = [
     }
 ];
 
+var STEP_LABELS = [
+    "Прогрес учнів",
+    "Відгуки батьків",
+    "Діагностика",
+    "Звітність",
+    "Допродажі",
+    "Масштабування"
+];
+
 var answers = {};
 var currentQ = 0;
+
+// Build left-panel step dots
+(function buildSteps() {
+    var wrap = document.getElementById('panel-steps');
+    STEP_LABELS.forEach(function(label, i) {
+        var item = document.createElement('div');
+        item.className = 'qps-item';
+        item.id = 'qps-' + i;
+        item.innerHTML =
+            '<div class="qps-circle">' + (i + 1) + '</div>' +
+            '<span>' + label + '</span>';
+        wrap.appendChild(item);
+    });
+})();
+
+function updatePanelSteps(activeIdx) {
+    STEP_LABELS.forEach(function(_, i) {
+        var el = document.getElementById('qps-' + i);
+        if (!el) return;
+        el.classList.remove('active', 'done');
+        if (i < activeIdx) el.classList.add('done');
+        else if (i === activeIdx) el.classList.add('active');
+    });
+}
 
 function quizStart() {
     showScreen('screen-questions');
@@ -178,6 +220,7 @@ function renderQuestion(idx) {
     document.getElementById('quiz-progress-bar').style.width = pct + '%';
     document.getElementById('quiz-step-label').innerText = 'Запитання ' + (idx + 1) + ' з ' + total;
     document.getElementById('quiz-question-text').innerText = QUESTIONS[idx].q;
+    updatePanelSteps(idx);
 
     var opts = QUESTIONS[idx].opts;
     var container = document.getElementById('quiz-options');
@@ -192,26 +235,23 @@ function renderQuestion(idx) {
 }
 
 function selectAnswer(qIdx, optIdx, optText, btn) {
-    // Highlight
     document.querySelectorAll('.quiz-option').forEach(function(b) { b.classList.remove('selected'); });
     btn.classList.add('selected');
-
     answers['q' + (qIdx + 1)] = optText;
 
-    // Auto-advance after short delay
     setTimeout(function() {
         if (qIdx + 1 < QUESTIONS.length) {
             renderQuestion(qIdx + 1);
         } else {
-            // Done — show form
             document.getElementById('quiz-progress-bar').style.width = '100%';
             document.getElementById('quiz-answers-input').value = JSON.stringify(answers);
             showScreen('screen-result');
+            // hide step dots on mobile, show result icon
+            updatePanelSteps(-1);
         }
     }, 350);
 }
 
-// Form submission
 document.getElementById('quiz-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     var btn = document.getElementById('quiz-submit-btn');
@@ -221,7 +261,6 @@ document.getElementById('quiz-form').addEventListener('submit', async function(e
     msg.innerText = '';
 
     document.getElementById('quiz-answers-input').value = JSON.stringify(answers);
-
     var submittedEmail = document.getElementById('qf-email').value;
 
     try {
@@ -233,10 +272,8 @@ document.getElementById('quiz-form').addEventListener('submit', async function(e
         });
         if (resp.ok) {
             if (typeof fbq === 'function') fbq('track', 'Lead');
-            // Show full-screen success
             document.getElementById('success-email').innerText = submittedEmail;
             showScreen('screen-success');
-            // Redirect to /uk/ after 3 seconds
             setTimeout(function() { window.location.href = '/uk/'; }, 3000);
         } else {
             throw new Error('error');
