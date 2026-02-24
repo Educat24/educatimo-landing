@@ -208,6 +208,12 @@ section:nth-child(even) { /* Чередование фонов для лучше
     color: var(--text-color-dark);
 }
 
+.card-emoji {
+    font-size: 2.5em;
+    line-height: 1;
+    margin-bottom: 12px;
+}
+
 .problem-solution-image {
     margin-top: 50px;
     max-width: 70%;
