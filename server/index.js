@@ -6,6 +6,14 @@ const hasMailPass = !!(process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD)
 if (!hasMailUser || !hasMailPass) {
     console.warn('Почта отключена: в server/.env должны быть GMAIL_USER и GMAIL_APP_PASSWORD (без пробелов вокруг =)');
 }
+
+// Brevo transactional email
+const { BrevoClient } = require('@getbrevo/brevo');
+const _brevoRawClient = new BrevoClient({ apiKey: process.env.BREVO_API_KEY || '' });
+const brevoTransac = _brevoRawClient.transactionalEmails;
+const BREVO_SENDER = { name: 'Олексій | Neuro.Educatimo', email: 'hello@neuro.educatimo.com' };
+const VIDEO_PREVIEW_URL = 'https://www.neuro.educatimo.com/images/video-preview.png';
+const VIDEO_URL = 'https://youtu.be/Mb19fifkauY';
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -256,6 +264,220 @@ async function sendRegistrationEmail(data) {
     return true;
 }
 
+// ─── Brevo i18n — все тексты писем сгруппированы по языку ────────────────
+// Чтобы добавить новый язык (ru/en/pl/cs): скопировать блок 'uk', перевести тексты.
+// Строки answers.* должны совпадать с текстами вариантов ответов в quiz.html.
+const BREVO_I18N = {
+    uk: {
+        tagline: 'Доказова освіта для вашого центру',
+        signature: {
+            regards:  'З повагою,',
+            name:     'Олексій Світличний',
+            title:    'CEO & Founder, Neuro.Educatimo',
+            contacts: '+380503281224 · @alekssvet · neuro.educatimo.com',
+            footer:   'Neuro.Educatimo · hello@neuro.educatimo.com',
+        },
+        videoCaption: 'Учні → Аналітика → Звіти під вашим брендом · 2 хв 29 сек',
+        landing: {
+            subject:  (name) => `${name}, дякуємо за реєстрацію — ось що далі`,
+            greeting: (name) => `Вітаємо, ${name}! 👋`,
+            p1:       'Дякуємо за реєстрацію в Neuro.Educatimo.',
+            p2:       (bold) => `Протягом кількох годин ми активуємо ваш <strong>${bold}</strong> та надішлемо запрошення для входу в платформу.`,
+            p2bold:   'безкоштовний місяць доступу',
+            p3:       'А поки що — подивіться коротке відео про те, як платформа виглядає зсередини:',
+            nextTitle: 'Що буде далі:',
+            steps: [
+                '✅ &nbsp;Ми активуємо ваш акаунт',
+                '📧 &nbsp;Надішлемо запрошення з посиланням для входу',
+                '🚀 &nbsp;Повний доступ на 1 місяць безкоштовно',
+            ],
+        },
+        quiz: {
+            subject:   (name) => `${name}, ось ваш персональний розбір — Neuro.Educatimo`,
+            greeting:  (name) => `Вітаємо, ${name}!`,
+            quizTitle: 'Ви щойно пройшли квіз «Чи готовий ваш центр до доказового навчання?»',
+            quizIntro: 'Ми проаналізували ваші відповіді та підготували персональний розбір — де саме ваш центр зараз втрачає клієнтів і гроші, та як це виправити.',
+            nextTitle: 'Що далі?',
+            nextP1:    'Протягом кількох годин ми надішлемо запрошення для входу в платформу разом з місяцем безкоштовного доступу. Нічого додатково робити не потрібно.',
+            nextP2:    'А поки що — подивіться як платформа виглядає зсередини:',
+            fallback:  'Ваш центр вже на хорошому рівні організації! Neuro.Educatimo допоможе вивести доказовий підхід на наступний рівень та зміцнити довіру батьків через об\'єктивні дані.',
+            segments: {
+                churn: {
+                    title: '🔴 ТОЧКА ВТРАТ: Батьки йдуть, бо не бачать результату',
+                    p1: 'Ви відзначили, що батьки регулярно скаржаться на відсутність видимого прогресу. Це найпоширеніша причина відтоку в освітніх центрах — і вона вирішується не «кращими поясненнями», а цифрами.',
+                    p2: 'Батько, який бачить графік «було → стало» по увазі та пам\'яті своєї дитини, не ставить питання «навіщо ми сюди ходимо?». Він продовжує абонемент. Сам.',
+                    p3: 'Наші партнери зафіксували зниження відтоку на 25% вже в перші 3 місяці після впровадження Neuro.Educatimo.',
+                },
+                control: {
+                    title: '🔴 ТОЧКА ВТРАТ: Якість навчання залежить від конкретного педагога',
+                    p1: 'Ви відзначили, що єдиного стандарту діагностики немає або кожен педагог оцінює по-своєму. При масштабуванні або зміні педагога якість «плаває» — і ви не маєте інструменту це об\'єктивно виміряти.',
+                    p2: 'Кожні 3 місяці Neuro.Educatimo автоматично збирає когнітивний зріз по кожному учню. Директор бачить тверді дані, а не суб\'єктивний звіт педагога. Якщо група просідає — система сигналізує негайно.',
+                },
+                upsell: {
+                    title: '🔴 ТОЧКА ВТРАТ: Ви не монетизуєте діагностику',
+                    p1: 'Ви відзначили що підготовка звіту займає багато часу або допродажі відбуваються інтуїтивно. А між тим когнітивна діагностика — це окрема послуга вартістю 300–800 грн за сесію.',
+                    p2: 'Neuro.Educatimo генерує повний звіт автоматично — за лічені секунди. Звіт виходить під брендом вашого центру (White Label). Наші партнери отримали новий revenue stream без додаткових витрат.',
+                },
+                scale: {
+                    title: '🔴 ТОЧКА ВТРАТ: Якість не масштабується на нові філії',
+                    p1: 'Ви відзначили що при відкритті нових філій або навчанні нових педагогів якість важко підтримувати на єдиному рівні.',
+                    p2: 'Neuro.Educatimo дає керівнику мережі єдиний стандарт вимірювання якості по всіх локаціях. White Label: кожна філія отримує звіти під своїм брендом, але за єдиною методологією.',
+                },
+            },
+            // Точные строки ответов — должны совпадать с вариантами в quiz.html
+            answers: {
+                q2_churn:   ['Дуже часто — це головна причина відходу', 'Час від часу, особливо через 2–3 місяці'],
+                q1_control: ['Тільки словесна оцінка педагога', 'Домашні завдання та тести'],
+                q3_control: ['Ні, педагог оцінює сам', 'Так, але різні педагоги роблять по-різному'],
+                q4_upsell:  ['Понад годину — це великий біль', '30–60 хвилин'],
+                q5_upsell:  ['Ні, не знаємо що пропонувати', 'Іноді, але інтуїтивно', 'Пробували, але без системи'],
+                q6_scale:   ['Важко — якість залежить від конкретних людей', 'Повільно — потрібно навчати кожного педагога'],
+            },
+        },
+    },
+    // ru: { ... },  // добавить при запуске RU-версии
+    // en: { ... },  // добавить при запуске EN-версии
+    // pl: { ... },  // добавить при запуске PL-версии
+    // cs: { ... },  // добавить при запуске CS-версии
+};
+
+// ─── Вспомогательный HTML-каркас письма ──────────────────────────────────
+function _brevoEmailWrap(t, bodyHtml) {
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;">
+  <tr><td style="background:#1B4F72;padding:32px 40px;text-align:center;">
+    <p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Neuro.Educatimo</p>
+    <p style="margin:8px 0 0;color:#AED6F1;font-size:14px;">${t.tagline}</p>
+  </td></tr>
+  ${bodyHtml}
+  <tr><td style="padding:0 40px 40px;">
+    <p style="margin:0 0 4px;font-size:15px;color:#2C3E50;">${t.signature.regards}</p>
+    <p style="margin:0 0 4px;font-size:15px;font-weight:bold;color:#1B4F72;">${t.signature.name}</p>
+    <p style="margin:0 0 4px;font-size:13px;color:#7F8C8D;">${t.signature.title}</p>
+    <p style="margin:0;font-size:13px;color:#7F8C8D;">${t.signature.contacts}</p>
+  </td></tr>
+  <tr><td style="background:#F8F9FA;padding:20px 40px;text-align:center;border-top:1px solid #EAECEE;">
+    <p style="margin:0;font-size:12px;color:#BDC3C7;">${t.signature.footer}</p>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+function _brevoVideoBlock(t) {
+    return `
+  <tr><td style="padding:0 40px 32px;">
+    <a href="${VIDEO_URL}" target="_blank" style="display:block;text-decoration:none;">
+      <img src="${VIDEO_PREVIEW_URL}" alt="Огляд Neuro.Educatimo" width="520" style="width:100%;max-width:520px;display:block;border-radius:8px;"/>
+    </a>
+    <p style="margin:12px 0 0;text-align:center;font-size:13px;color:#7F8C8D;">${t.videoCaption}</p>
+  </td></tr>`;
+}
+
+// ─── Brevo: письмо лиду после формы лендинга ──────────────────────────────
+function buildLandingEmailHtml(orgName, lang = 'uk') {
+    const t = BREVO_I18N[lang] || BREVO_I18N.uk;
+    const l = t.landing;
+    const stepsHtml = l.steps.map(s =>
+        `<p style="margin:0 0 6px;font-size:14px;color:#2C3E50;">${s}</p>`
+    ).join('');
+
+    const body = `
+  <tr><td style="padding:40px 40px 24px;">
+    <h1 style="margin:0 0 16px;font-size:24px;color:#1B4F72;">${l.greeting(orgName)}</h1>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p1}</p>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p2(l.p2bold)}</p>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p3}</p>
+  </td></tr>
+  ${_brevoVideoBlock(t)}
+  <tr><td style="padding:0 40px 32px;">
+    <table width="100%" style="background:#EBF5FB;border-radius:8px;border-left:4px solid #2E86C1;">
+    <tr><td style="padding:20px 24px;">
+      <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#1B4F72;">${l.nextTitle}</p>
+      ${stepsHtml}
+    </td></tr></table>
+  </td></tr>`;
+
+    return _brevoEmailWrap(t, body);
+}
+
+// ─── Brevo: письмо лиду после квиза ──────────────────────────────────────
+function buildQuizEmailHtml(orgName, qa, lang = 'uk') {
+    const t  = BREVO_I18N[lang] || BREVO_I18N.uk;
+    const q  = t.quiz;
+    const an = q.answers;
+    const sg = q.segments;
+
+    const q1 = qa.q1 || '';
+    const q2 = qa.q2 || '';
+    const q3 = qa.q3 || '';
+    const q4 = qa.q4 || '';
+    const q5 = qa.q5 || '';
+    const q6 = qa.q6 || '';
+
+    const seg_churn   = an.q2_churn.includes(q2);
+    const seg_control = an.q1_control.includes(q1) || an.q3_control.includes(q3);
+    const seg_upsell  = an.q4_upsell.includes(q4)  || an.q5_upsell.includes(q5);
+    const seg_scale   = an.q6_scale.includes(q6);
+
+    const segBlock = (s) => `
+    <div style="margin:0 0 24px;padding:20px 24px;background:#FDF2F8;border-left:4px solid #C0392B;border-radius:4px;">
+      <h3 style="margin:0 0 12px;color:#C0392B;font-size:16px;">${s.title}</h3>
+      <p style="margin:0 0 8px;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p1}</p>
+      ${s.p2 ? `<p style="margin:0 0 8px;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p2}</p>` : ''}
+      ${s.p3 ? `<p style="margin:0;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p3}</p>` : ''}
+    </div>`;
+
+    let blocks = '';
+    if (seg_churn)   blocks += segBlock(sg.churn);
+    if (seg_control) blocks += segBlock(sg.control);
+    if (seg_upsell)  blocks += segBlock(sg.upsell);
+    if (seg_scale)   blocks += segBlock(sg.scale);
+    if (!blocks) blocks = `
+    <div style="margin:0 0 24px;padding:20px 24px;background:#EBF5FB;border-left:4px solid #2E86C1;border-radius:4px;">
+      <p style="margin:0;font-size:14px;color:#2C3E50;line-height:1.6;">${q.fallback}</p>
+    </div>`;
+
+    const body = `
+  <tr><td style="padding:40px 40px 24px;">
+    <h1 style="margin:0 0 16px;font-size:24px;color:#1B4F72;">${q.greeting(orgName)}</h1>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${q.quizTitle}</p>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${q.quizIntro}</p>
+  </td></tr>
+  <tr><td style="padding:0 40px;">${blocks}</td></tr>
+  <tr><td style="padding:24px 40px 32px;">
+    <table width="100%" style="background:#EBF5FB;border-radius:8px;border-left:4px solid #2E86C1;">
+    <tr><td style="padding:20px 24px;">
+      <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#1B4F72;">${q.nextTitle}</p>
+      <p style="margin:0 0 8px;font-size:14px;color:#2C3E50;line-height:1.6;">${q.nextP1}</p>
+      <p style="margin:0;font-size:14px;color:#2C3E50;">${q.nextP2}</p>
+    </td></tr></table>
+  </td></tr>
+  ${_brevoVideoBlock(t)}`;
+
+    return _brevoEmailWrap(t, body);
+}
+
+// ─── Brevo: транспортная функция (fire-and-forget) ────────────────────────
+async function sendBrevoLeadEmail(toEmail, toName, subject, html) {
+    if (!process.env.BREVO_API_KEY) {
+        console.warn('Brevo: BREVO_API_KEY not set, skipping lead email');
+        return;
+    }
+    try {
+        await brevoTransac.sendTransacEmail({
+            sender: BREVO_SENDER,
+            to: [{ email: toEmail, name: toName }],
+            subject,
+            htmlContent: html
+        });
+        console.log('Brevo lead email sent to', toEmail);
+    } catch (err) {
+        console.error('Brevo lead email error:', err.message || err);
+    }
+}
+
 // API Endpoint: save to DB and/or send email. Success if at least one works (so form works even when DB is unavailable on prod).
 app.post('/api/register', parseForm, async (req, res) => {
     const { email, lang } = req.body;
@@ -299,6 +521,27 @@ app.post('/api/register', parseForm, async (req, res) => {
     if (dbOk || emailOk) {
         if (emailOk) console.log('Registration: success (email sent)');
         else console.log('Registration: success (saved to DB only, email not sent)');
+
+        // Brevo: send lead email (fire-and-forget, does not affect response)
+        // lang comes as 'UK'/'RU'/'EN'/'PL'/'CZ' — normalise to lowercase
+        const langKey = (lang || 'uk').toLowerCase();
+        const i18n = BREVO_I18N[langKey] || BREVO_I18N.uk;
+        if (source === 'quiz' && quiz_answers) {
+            sendBrevoLeadEmail(
+                email,
+                center_name,
+                i18n.quiz.subject(center_name),
+                buildQuizEmailHtml(center_name, quiz_answers, langKey)
+            );
+        } else {
+            sendBrevoLeadEmail(
+                email,
+                center_name,
+                i18n.landing.subject(center_name),
+                buildLandingEmailHtml(center_name, langKey)
+            );
+        }
+
         return res.status(201).json({ email, center_name });
     }
     console.log('Registration: failed (DB and email both failed)');
