@@ -645,7 +645,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Thank you! We've received your application. Within a few hours you'll get an email with access to the platform.";
                     messageDiv.style.color = "var(--accent-color)";
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {
                     throw new Error('Network response was not ok.');
                 }

@@ -642,7 +642,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Děkujeme! Přijali jsme vaši žádost. Během několika hodin obdržíte email s přístupem k platformě.";
                     messageDiv.style.color = "var(--accent-color)";
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {
                     // Chyba
                     throw new Error('Network response was not ok.');

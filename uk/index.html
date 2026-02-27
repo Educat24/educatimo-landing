@@ -643,7 +643,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Дякуємо! Ми отримали вашу заявку. Протягом кількох годин на вашу пошту надійде лист із доступом до платформи.";
                     messageDiv.style.color = "var(--accent-color)";
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {
                     throw new Error('Network response was not ok.');
                 }

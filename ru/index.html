@@ -652,7 +652,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Спасибо! Мы получили вашу заявку. В течение нескольких часов на вашу почту придёт письмо с доступом к платформе.";
                     messageDiv.style.color = "var(--accent-color)";
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {
                     throw new Error('Network response was not ok.');
                 }

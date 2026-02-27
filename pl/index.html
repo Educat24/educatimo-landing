@@ -647,7 +647,7 @@
                     button.style.display = 'none';
                     messageDiv.innerText = "Dziękujemy! Otrzymaliśmy Twoje zgłoszenie. W ciągu kilku godzin otrzymasz email z dostępem do platformy.";
                     messageDiv.style.color = "var(--accent-color)";
-                    if (typeof fbq === 'function') fbq('track', 'Lead');
+                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {
                     // Błąd
                     throw new Error('Network response was not ok.');
