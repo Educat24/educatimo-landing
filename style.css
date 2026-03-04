@@ -1484,18 +1484,20 @@ body.quiz-page {
 
 /* Block 1: Elevator Pitch */
 #elevator-pitch {
-    padding: 80px 0;
+    padding: 40px 0;
     text-align: center;
+    background-color: #eef3f9;
 }
 #elevator-pitch h2 {
     font-size: 2.5em;
     margin-bottom: 20px;
 }
 #elevator-pitch .pitch-text {
-    font-size: 1.25em;
+    font-size: 1.3em;
+    font-weight: 500;
     max-width: 860px;
     margin: 0 auto;
-    color: var(--secondary-color);
+    color: #4a5568;
     line-height: 1.8;
 }
 
@@ -1609,6 +1611,58 @@ body.quiz-page {
     display: block;
 }
 
+/* Results Summary Block */
+#results-summary {
+    padding: 80px 0;
+}
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    text-align: left;
+    margin-top: 10px;
+}
+.result-card {
+    background: var(--background-light);
+    border-radius: 12px;
+    padding: 35px 30px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color);
+}
+.result-card .result-icon {
+    font-size: 2.5em;
+    margin-bottom: 15px;
+    display: block;
+}
+.result-card h3 {
+    font-size: 1.3em;
+    margin-bottom: 12px;
+    color: var(--text-color-dark);
+}
+.result-card p {
+    color: var(--secondary-color);
+    line-height: 1.7;
+    margin: 0;
+}
+
+/* Fix subheading in steps block */
+.steps-subheading {
+    font-size: 1.15em;
+    color: var(--secondary-color);
+    margin-top: -10px;
+    margin-bottom: 40px;
+    font-family: var(--font-family-sans);
+    font-weight: 400;
+}
+
+/* Fix overflow in audience cards */
+.audience-item h3 {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
 /* Responsive for new blocks */
 @media (max-width: 900px) {
     .pain-grid {
@@ -1637,5 +1691,11 @@ body.quiz-page {
     }
     .screenshots-grid {
         grid-template-columns: 1fr;
+    }
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+    .audience-item h3 {
+        font-size: 1em;
     }
 }
