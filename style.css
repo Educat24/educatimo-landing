@@ -1477,3 +1477,165 @@ body.quiz-page {
     .quiz-question { font-size: 1.15rem; }
     .quiz-success-icon-large { font-size: 48px; }
 }
+
+/* ─────────────────────────────────────────
+   NEW BLOCKS: Elevator Pitch, Pain & Solutions, Steps, Report Screenshots
+   ───────────────────────────────────────── */
+
+/* Block 1: Elevator Pitch */
+#elevator-pitch {
+    padding: 80px 0;
+    text-align: center;
+}
+#elevator-pitch h2 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+#elevator-pitch .pitch-text {
+    font-size: 1.25em;
+    max-width: 860px;
+    margin: 0 auto;
+    color: var(--secondary-color);
+    line-height: 1.8;
+}
+
+/* Block 2: Pain Points & Solutions */
+#pain-solutions {
+    padding: 80px 0;
+}
+.pain-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+    text-align: left;
+}
+.pain-card {
+    background: var(--background-light);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+}
+.pain-card .problem {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+.pain-card .problem h4 {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--text-color-dark);
+    margin-bottom: 8px;
+    font-family: var(--font-family-sans);
+}
+.pain-card .solution h4 {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 8px;
+    font-family: var(--font-family-sans);
+}
+.pain-card p {
+    font-size: 0.92em;
+    color: var(--secondary-color);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Block 3: Steps */
+#how-it-works-new {
+    padding: 80px 0;
+}
+.steps-row {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: nowrap;
+}
+.step-card {
+    background: var(--background-light);
+    border-radius: 12px;
+    padding: 28px 20px;
+    flex: 1;
+    max-width: 240px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
+    text-align: center;
+}
+.step-card .step-icon {
+    font-size: 2.4em;
+    margin-bottom: 14px;
+    display: block;
+}
+.step-card h4 {
+    font-size: 1em;
+    font-weight: 700;
+    margin-bottom: 8px;
+    font-family: var(--font-family-sans);
+    color: var(--text-color-dark);
+}
+.step-card p {
+    font-size: 0.9em;
+    color: var(--secondary-color);
+    margin: 0;
+    line-height: 1.5;
+}
+.step-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 2em;
+    color: var(--primary-color);
+    flex-shrink: 0;
+}
+
+/* Block 4: Report Screenshots */
+#report-screenshots {
+    padding: 80px 0;
+}
+.screenshots-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+}
+.screenshots-grid img {
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+    display: block;
+}
+
+/* Responsive for new blocks */
+@media (max-width: 900px) {
+    .pain-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 600px) {
+    #elevator-pitch h2 {
+        font-size: 1.8em;
+    }
+    .pain-grid {
+        grid-template-columns: 1fr;
+    }
+    .steps-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+    }
+    .step-arrow {
+        transform: rotate(90deg);
+        padding: 4px 0;
+    }
+    .step-card {
+        max-width: 100%;
+        width: 100%;
+    }
+    .screenshots-grid {
+        grid-template-columns: 1fr;
+    }
+}
