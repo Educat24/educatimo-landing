@@ -422,8 +422,10 @@ function buildQuizEmailHtml(orgName, qa, lang = 'uk') {
     <div style="margin:0 0 24px;padding:20px 24px;background:#FDF2F8;border-left:4px solid #C0392B;border-radius:4px;">
       <h3 style="margin:0 0 12px;color:#C0392B;font-size:16px;">${s.title}</h3>
       <p style="margin:0 0 8px;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p1}</p>
-      ${s.p2 ? `<p style="margin:0 0 8px;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p2}</p>` : ''}
-      ${s.p3 ? `<p style="margin:0;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p3}</p>` : ''}
+      ${s.p2 ? `<div style="margin-top:10px;padding:10px 14px;background-color:#f0fdf4;border-radius:6px;">
+        <p style="margin:0;font-size:14px;color:#15803d;line-height:1.6;font-weight:500;"><strong>🟢 Рішення:</strong> ${s.p2}</p>
+      </div>` : ''}
+      ${s.p3 ? `<p style="margin:8px 0 0;font-size:14px;color:#2C3E50;line-height:1.6;">${s.p3}</p>` : ''}
     </div>`;
 
     let blocks = '';
