@@ -100,7 +100,7 @@ a:hover {
 
 /* Секции */
 section {
-    padding: 80px 0;
+    padding: 50px 0;
     text-align: center;
 }
 
@@ -648,7 +648,7 @@ section:nth-child(even) { /* Чередование фонов для лучше
 #registration {
     background-color: var(--primary-color);
     color: var(--text-color-light);
-    padding: 100px 0;
+    padding: 60px 0;
 }
 
 #registration h2 {
@@ -1503,7 +1503,7 @@ body.quiz-page {
 
 /* Block 2: Pain Points & Solutions */
 #pain-solutions {
-    padding: 80px 0;
+    padding: 48px 0;
 }
 .pain-grid {
     display: grid;
@@ -1548,7 +1548,7 @@ body.quiz-page {
 
 /* Block 3: Steps */
 #how-it-works-new {
-    padding: 80px 0;
+    padding: 48px 0;
 }
 .steps-row {
     display: flex;
@@ -1613,7 +1613,7 @@ body.quiz-page {
 
 /* Results Summary Block */
 #results-summary {
-    padding: 80px 0;
+    padding: 48px 0;
 }
 .results-grid {
     display: grid;
@@ -1723,7 +1723,7 @@ body.quiz-page {
    COGNITIVE SKILLS BLOCK
    ======================================= */
 #cognitive-skills {
-    padding: 70px 0;
+    padding: 48px 0;
 }
 .cognitive-skills-list {
     list-style: none;
@@ -1757,7 +1757,7 @@ body.quiz-page {
    VISUALIZATION / SLIDER BLOCK
    ======================================= */
 #visualization {
-    padding: 70px 0;
+    padding: 48px 0;
     background-color: #f8f9fa;
 }
 .vis-slider-wrap {
@@ -1841,7 +1841,7 @@ body.quiz-page {
    ======================================= */
 .section-cta {
     text-align: center;
-    margin-top: 34px;
+    margin-top: 24px;
 }
 
 /* =======================================
