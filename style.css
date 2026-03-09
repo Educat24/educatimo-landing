@@ -1699,3 +1699,172 @@ body.quiz-page {
         font-size: 1em;
     }
 }
+
+/* =======================================
+   SCIENTIFIC FOUNDATION BLOCK
+   ======================================= */
+#scientific-foundation {
+    padding: 36px 0;
+    background-color: #1a3a5c;
+    text-align: center;
+}
+#scientific-foundation p {
+    font-size: 1.15em;
+    max-width: 880px;
+    margin: 0 auto;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 1.85;
+}
+#scientific-foundation strong {
+    color: #aed6f1;
+}
+
+/* =======================================
+   COGNITIVE SKILLS BLOCK
+   ======================================= */
+#cognitive-skills {
+    padding: 70px 0;
+}
+.cognitive-skills-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 auto 28px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 760px;
+    text-align: left;
+}
+.cognitive-skills-list li {
+    font-size: 1em;
+    color: var(--text-color-dark);
+    padding: 10px 14px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    line-height: 1.55;
+    border-left: 3px solid var(--primary-color);
+}
+.cognitive-summary {
+    max-width: 760px;
+    margin: 0 auto 30px;
+    font-size: 1.05em;
+    color: var(--secondary-color);
+    line-height: 1.7;
+    text-align: center;
+}
+
+/* =======================================
+   VISUALIZATION / SLIDER BLOCK
+   ======================================= */
+#visualization {
+    padding: 70px 0;
+    background-color: #f8f9fa;
+}
+.vis-slider-wrap {
+    position: relative;
+    max-width: 840px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    background: #e8eef5;
+}
+.vis-track {
+    display: flex;
+    transition: transform 0.4s ease;
+}
+.vis-slide {
+    min-width: 100%;
+}
+.vis-slide img {
+    width: 100%;
+    display: block;
+    border-radius: 12px;
+    object-fit: contain;
+    max-height: 520px;
+}
+.vis-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.92);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 1.6em;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background 0.2s;
+}
+.vis-arrow:hover {
+    background: #fff;
+}
+.vis-arrow.prev {
+    left: 12px;
+}
+.vis-arrow.next {
+    right: 12px;
+}
+.vis-dots {
+    text-align: center;
+    padding: 10px 0 14px;
+}
+.vis-dots span {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ccc;
+    margin: 0 5px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.vis-dots span.active {
+    background: var(--primary-color);
+}
+.vis-caption {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 1em;
+    color: var(--secondary-color);
+    font-style: italic;
+}
+
+/* =======================================
+   SECTION CTA (centred button under block)
+   ======================================= */
+.section-cta {
+    text-align: center;
+    margin-top: 34px;
+}
+
+/* =======================================
+   FOOTER DISCLAIMER
+   ======================================= */
+.footer-disclaimer {
+    font-size: 0.78em;
+    color: rgba(189, 195, 199, 0.75);
+    margin-top: 14px;
+    font-style: italic;
+    max-width: 720px;
+    text-align: center;
+    line-height: 1.55;
+}
+
+/* =======================================
+   RESPONSIVE — new blocks
+   ======================================= */
+@media (max-width: 600px) {
+    .cognitive-skills-list {
+        grid-template-columns: 1fr;
+    }
+    .vis-slide img {
+        max-height: 260px;
+    }
+}
