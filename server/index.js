@@ -320,6 +320,11 @@ const BREVO_I18N = {
                     p1: 'Ви відзначили що при відкритті нових філій або навчанні нових педагогів якість важко підтримувати на єдиному рівні.',
                     p2: 'Neuro.Educatimo дає керівнику мережі єдиний стандарт вимірювання якості по всіх локаціях. White Label: кожна філія отримує звіти під своїм брендом, але за єдиною методологією.',
                 },
+                burnout: {
+                    title: '🔴 ТОЧКА ВТРАТ: Вигорання педагогів та втрата "складних" учнів',
+                    p1: 'Ви відзначили, що стандартні методики навчання працюють не для всіх дітей, або підхід доводиться шукати інтуїтивно. Без розуміння когнітивних причин неуспішності педагоги вигорають, а батьки часто забирають дітей до інших фахівців, що призводить до втрати прибутку.',
+                    p2: 'Neuro.Educatimo працює як "рентген" когнітивних здібностей. Платформа показує, яка саме функція (наприклад, увага, робоча пам\'ять чи швидкість обробки інформації) гальмує навчання. Завдяки цьому педагог може підібрати індивідуальний підхід, спираючись на виміряні сильні сторони дитини, що робить інклюзію системною та зберігає клієнтів у вашому закладі.',
+                },
             },
             // Точные строки ответов — должны совпадать с вариантами в quiz.html
             answers: {
@@ -329,6 +334,7 @@ const BREVO_I18N = {
                 q4_upsell:  ['Понад годину — це великий біль', '30–60 хвилин'],
                 q5_upsell:  ['Ні, не знаємо що пропонувати', 'Іноді, але інтуїтивно', 'Пробували, але без системи'],
                 q6_scale:   ['Важко — якість залежить від конкретних людей', 'Повільно — потрібно навчати кожного педагога'],
+                q7_burnout: ['Так, це часта проблема, яка призводить до вигорання вчителів.', 'Буває з окремими дітьми, намагаємося підібрати підхід інтуїтивно.', 'Рекомендуємо батькам звернутися до сторонніх фахівців.'],
             },
         },
     },
@@ -412,11 +418,13 @@ function buildQuizEmailHtml(orgName, qa, lang = 'uk') {
     const q4 = qa.q4 || '';
     const q5 = qa.q5 || '';
     const q6 = qa.q6 || '';
+    const q7 = qa.q7 || '';
 
     const seg_churn   = an.q2_churn.includes(q2);
     const seg_control = an.q1_control.includes(q1) || an.q3_control.includes(q3);
     const seg_upsell  = an.q4_upsell.includes(q4)  || an.q5_upsell.includes(q5);
     const seg_scale   = an.q6_scale.includes(q6);
+    const seg_burnout = an.q7_burnout.includes(q7);
 
     const segBlock = (s) => `
     <div style="margin:0 0 24px;padding:20px 24px;background:#FDF2F8;border-left:4px solid #C0392B;border-radius:4px;">
@@ -433,6 +441,7 @@ function buildQuizEmailHtml(orgName, qa, lang = 'uk') {
     if (seg_control) blocks += segBlock(sg.control);
     if (seg_upsell)  blocks += segBlock(sg.upsell);
     if (seg_scale)   blocks += segBlock(sg.scale);
+    if (seg_burnout) blocks += segBlock(sg.burnout);
     if (!blocks) blocks = `
     <div style="margin:0 0 24px;padding:20px 24px;background:#EBF5FB;border-left:4px solid #2E86C1;border-radius:4px;">
       <p style="margin:0;font-size:14px;color:#2C3E50;line-height:1.6;">${q.fallback}</p>
