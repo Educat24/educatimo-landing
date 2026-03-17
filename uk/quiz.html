@@ -108,6 +108,16 @@
                     <option value="gt200">Більше 200 учнів</option>
                 </select>
 
+                <!-- UTM Hidden Fields Quiz -->
+                <input type="hidden" name="utm_source" id="quiz_utm_source">
+                <input type="hidden" name="utm_medium" id="quiz_utm_medium">
+                <input type="hidden" name="utm_campaign" id="quiz_utm_campaign">
+                <input type="hidden" name="utm_content" id="quiz_utm_content">
+                <input type="hidden" name="utm_term" id="quiz_utm_term">
+                <input type="hidden" name="fbclid" id="quiz_fbclid">
+                <input type="hidden" name="landing_page" id="quiz_landing_page">
+                <input type="hidden" name="referrer" id="quiz_referrer">
+                <input type="hidden" name="lead_source" value="quiz">
                 <button type="submit" class="btn quiz-btn" id="quiz-submit-btn">ОТРИМАТИ РЕЗУЛЬТАТИ →</button>
                 <div id="quiz-form-message"></div>
             </form>
@@ -208,9 +218,19 @@ function selectAnswer(qIdx, optIdx, optText, btn) {
             document.getElementById('quiz-answers-input').value = JSON.stringify(answers);
             updateSteps(0, true);
             showScreen('screen-result');
+            fillQuizUTMFields();
         }
     }, 350);
 }
+
+function fillQuizUTMFields() {
+    var fields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer'];
+    fields.forEach(function(field) {
+        var el = document.getElementById('quiz_' + field);
+        if (el) el.value = localStorage.getItem(field) || '';
+    });
+}
+document.addEventListener('DOMContentLoaded', fillQuizUTMFields);
 
 document.getElementById('quiz-form').addEventListener('submit', async function(e) {
     e.preventDefault();
