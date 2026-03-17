@@ -19,7 +19,23 @@
     </script>
     <noscript><img height="1" width="1" style="display:none"
             src="https://www.facebook.com/tr?id=1427039129205224&ev=PageView&noscript=1" /></noscript>
-    <meta charset="UTF-8">
+    <!-- UTM Capture Script -->
+    <script>
+    (function() {
+      var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
+      var urlParams = new URLSearchParams(window.location.search);
+      params.forEach(function(param) {
+        if (urlParams.get(param)) {
+          localStorage.setItem(param, urlParams.get(param));
+        }
+      });
+      localStorage.setItem('landing_page', window.location.pathname);
+      if (document.referrer) {
+        localStorage.setItem('referrer', document.referrer);
+      }
+    })();
+    </script>
+    <meta"UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neuro Educatimo – The Future of Evidence-Based Education</title>
 
@@ -733,6 +749,15 @@
                         <option value="gt200">More than 200 students</option>
                     </select>
 
+                    <!-- UTM Hidden Fields -->
+                    <input type="hidden" name="utm_source" id="utm_source">
+                    <input type="hidden" name="utm_medium" id="utm_medium">
+                    <input type="hidden" name="utm_campaign" id="utm_campaign">
+                    <input type="hidden" name="utm_content" id="utm_content">
+                    <input type="hidden" name="utm_term" id="utm_term">
+                    <input type="hidden" name="fbclid" id="fbclid">
+                    <input type="hidden" name="landing_page" id="landing_page">
+                    <input type="hidden" name="referrer" id="referrer">
                     <button type="submit" class="btn">Request a Demo (15 min)</button>
                     <p class="small-text">We will notify you by email as soon as the platform is ready for the pilot
                         group launch. Participation in the pilot is free and carries no obligations.</p>
@@ -893,6 +918,18 @@
 
     </script>
 
+    <!-- UTM Form Filler Script -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer'];
+      utmFields.forEach(function(field) {
+        var el = document.getElementById(field);
+        if (el) {
+          el.value = localStorage.getItem(field) || '';
+        }
+      });
+    });
+    </script>
 </body>
 
 </html>

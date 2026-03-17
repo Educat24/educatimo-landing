@@ -218,7 +218,8 @@ function getLangLabel(lang) {
 
 // Send registration notification to owner. Uses env: RECIPIENT_EMAIL, EMAIL_USER, EMAIL_PASS (or GMAIL_USER, GMAIL_APP_PASSWORD).
 async function sendRegistrationEmail(data) {
-    const { email, center_name, lang, phone, org_type, students_count, source, quiz_answers } = data;
+    const { email, center_name, lang, phone, org_type, students_count, source, quiz_answers,
+            utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer } = data;
     const to = process.env.RECIPIENT_EMAIL || 'svetlichnyioleksiy@gmail.com';
     const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
     const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
@@ -240,11 +241,26 @@ async function sendRegistrationEmail(data) {
     const quizHtml = quiz_answers
         ? `<tr><td><strong>Відповіді квізу:</strong></td><td><pre style="font-size:12px">${JSON.stringify(quiz_answers, null, 2)}</pre></td></tr>`
         : '';
+    const hasUtm = utm_source || utm_medium || utm_campaign || utm_content || utm_term || fbclid;
+    const utmSection = hasUtm
+        ? `\n\nUTM / Джерело трафіку:\n  utm_source: ${utm_source || '—'}\n  utm_medium: ${utm_medium || '—'}\n  utm_campaign: ${utm_campaign || '—'}\n  utm_content: ${utm_content || '—'}\n  utm_term: ${utm_term || '—'}\n  fbclid: ${fbclid || '—'}\n  landing_page: ${landing_page || '—'}\n  referrer: ${referrer || '—'}`
+        : '';
+    const utmHtml = hasUtm
+        ? `<tr><td colspan="2" style="padding:8px 12px 2px;color:#666;font-size:12px;border-top:1px solid #eee"><em>UTM / Джерело трафіку</em></td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_source</td><td style="padding:3px 12px;font-size:12px">${utm_source || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_medium</td><td style="padding:3px 12px;font-size:12px">${utm_medium || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_campaign</td><td style="padding:3px 12px;font-size:12px">${utm_campaign || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_content</td><td style="padding:3px 12px;font-size:12px">${utm_content || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_term</td><td style="padding:3px 12px;font-size:12px">${utm_term || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">fbclid</td><td style="padding:3px 12px;font-size:12px">${fbclid || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">landing_page</td><td style="padding:3px 12px;font-size:12px">${landing_page || '—'}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">referrer</td><td style="padding:3px 12px;font-size:12px">${referrer || '—'}</td></tr>`
+        : '';
     await transporter.sendMail({
         from: user,
         to,
         subject: `Нова реєстрація: ${center_name}`,
-        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${quizSection}`,
+        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${utmSection}${quizSection}`,
         html: `<table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
             <tr><td style="padding:6px 12px;color:#666">Організація:</td><td style="padding:6px 12px"><strong>${center_name}</strong></td></tr>
             <tr><td style="padding:6px 12px;color:#666">Email:</td><td style="padding:6px 12px">${email}</td></tr>
@@ -254,6 +270,7 @@ async function sendRegistrationEmail(data) {
             <tr><td style="padding:6px 12px;color:#666">Мова:</td><td style="padding:6px 12px">${langLabel}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Джерело:</td><td style="padding:6px 12px">${sourceLabel}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Дата:</td><td style="padding:6px 12px">${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}</td></tr>
+            ${utmHtml}
             ${quizHtml}
         </table>`
     });
@@ -495,6 +512,14 @@ app.post('/api/register', parseForm, async (req, res) => {
     const org_type = req.body.org_type || null;
     const students_count = req.body.students_count || null;
     const source = req.body.source || 'landing_form';
+    const utm_source   = req.body.utm_source   || '';
+    const utm_medium   = req.body.utm_medium   || '';
+    const utm_campaign = req.body.utm_campaign || '';
+    const utm_content  = req.body.utm_content  || '';
+    const utm_term     = req.body.utm_term     || '';
+    const fbclid       = req.body.fbclid       || '';
+    const landing_page = req.body.landing_page || '';
+    const referrer     = req.body.referrer     || '';
     // quiz_answers may be sent as JSON string from quiz page
     let quiz_answers = null;
     if (req.body.quiz_answers) {
@@ -520,7 +545,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     }
 
     try {
-        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, org_type, students_count, source, quiz_answers });
+        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, org_type, students_count, source, quiz_answers, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer });
         if (sent) emailOk = true;
     } catch (err) {
         console.error('Error sending registration email:', err.message || err);
