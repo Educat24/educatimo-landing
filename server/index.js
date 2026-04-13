@@ -54,6 +54,18 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 const parseForm = multer().none(); // for multipart form without files (registration form)
 
+function toIsoLang(lang) {
+    if (lang === 'ua') return 'uk';
+    if (lang === 'cz') return 'cs';
+    return lang;
+}
+
+function toDbLang(lang) {
+    if (lang === 'uk') return 'ua';
+    if (lang === 'cs') return 'cz';
+    return lang;
+}
+
 // View Engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -686,12 +698,15 @@ app.post('/api/upload', isAdminApi, upload.single('image'), (req, res) => {
 // Sitemap XML Endpoint (ISO 639-1 language codes: ru, en, uk, pl, cs only)
 app.get('/sitemap.xml', async (req, res) => {
     try {
-        const result = await pool.query('SELECT slug, updated_at, created_at FROM articles ORDER BY created_at DESC');
+        const result = await pool.query(
+            'SELECT slug, language, translation_id, updated_at, created_at FROM articles ORDER BY created_at DESC'
+        );
         const articles = result.rows;
         const baseUrl = 'https://www.neuro.educatimo.com';
 
         let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">`;
 
         // Static language home pages only (no old ua/cz or index)
         ['ru', 'en', 'uk', 'pl', 'cs'].forEach(lang => {
@@ -703,13 +718,30 @@ app.get('/sitemap.xml', async (req, res) => {
    </url>`;
         });
 
-        // Blog pages
+        const translationGroups = new Map();
+        articles.forEach(article => {
+            const key = article.translation_id || `self:${article.slug}`;
+            if (!translationGroups.has(key)) translationGroups.set(key, []);
+            translationGroups.get(key).push(article);
+        });
+
+        // Blog pages with hreflang alternates
         articles.forEach(article => {
             const date = article.updated_at || article.created_at;
             const lastmod = new Date(date).toISOString();
+            const key = article.translation_id || `self:${article.slug}`;
+            const group = translationGroups.get(key) || [article];
+            const altMap = {};
+            group.forEach(row => {
+                const iso = toIsoLang(row.language || 'ru');
+                altMap[iso] = `${baseUrl}/blog/${row.slug}`;
+            });
+            const xDefault = altMap.en || altMap.uk || altMap.ru || `${baseUrl}/blog/${article.slug}`;
             xml += `
    <url>
       <loc>${baseUrl}/blog/${article.slug}</loc>
+      ${Object.entries(altMap).map(([iso, url]) => `<xhtml:link rel="alternate" hreflang="${iso}" href="${url}" />`).join('\n      ')}
+      <xhtml:link rel="alternate" hreflang="x-default" href="${xDefault}" />
       <lastmod>${lastmod}</lastmod>
       <changefreq>weekly</changefreq>
       <priority>0.8</priority>
@@ -756,7 +788,7 @@ const linkify = (text, language) => {
 app.get('/blog', async (req, res) => {
     try {
         const urlLang = req.query.language || 'ru';
-        const dbLang = ({ uk: 'ua', cs: 'cz' })[urlLang] || urlLang;
+        const dbLang = toDbLang(urlLang);
         const terms = TERMS[urlLang] || TERMS[dbLang] || TERMS['ru'];
 
         let query = 'SELECT * FROM articles WHERE language = $1 ORDER BY created_at DESC';
@@ -777,6 +809,15 @@ app.get('/blog', async (req, res) => {
             pageTitle: terms.blogTitle,
             language: urlLang,
             terms: terms,
+            canonicalUrl: `https://www.neuro.educatimo.com/blog?language=${urlLang}`,
+            alternateUrls: {
+                ru: 'https://www.neuro.educatimo.com/blog?language=ru',
+                en: 'https://www.neuro.educatimo.com/blog?language=en',
+                uk: 'https://www.neuro.educatimo.com/blog?language=uk',
+                pl: 'https://www.neuro.educatimo.com/blog?language=pl',
+                cs: 'https://www.neuro.educatimo.com/blog?language=cs',
+                'x-default': 'https://www.neuro.educatimo.com/blog?language=uk'
+            },
             currentPath: '/blog',
             currentLanguage: urlLang
         });
@@ -798,8 +839,24 @@ app.get('/blog/:slug', async (req, res) => {
 
         // Language setup
         const language = article.language || 'ru';
-        const isoLang = language === 'ua' ? 'uk' : (language === 'cz' ? 'cs' : language);
+        const isoLang = toIsoLang(language);
         const terms = TERMS[language] || TERMS['ru'];
+
+        let translations = [article];
+        if (article.translation_id) {
+            const trResult = await pool.query(
+                'SELECT slug, language FROM articles WHERE translation_id = $1',
+                [article.translation_id]
+            );
+            if (trResult.rows.length > 0) translations = trResult.rows;
+        }
+
+        const alternateUrls = {};
+        translations.forEach(row => {
+            const iso = toIsoLang(row.language || 'ru');
+            alternateUrls[iso] = `https://www.neuro.educatimo.com/blog/${row.slug}`;
+        });
+        alternateUrls['x-default'] = alternateUrls.en || alternateUrls.uk || alternateUrls.ru || `https://www.neuro.educatimo.com/blog/${slug}`;
 
         // Auto-linking
         article.content = linkify(article.content, language);
@@ -810,7 +867,7 @@ app.get('/blog/:slug', async (req, res) => {
             "@type": "BlogPosting",
             "mainEntityOfPage": {
                 "@type": "WebPage",
-                "@id": `https://www.neuro.educatimo.com/blog/${slug}?language=${language}`
+                "@id": `https://www.neuro.educatimo.com/blog/${slug}`
             },
             "headline": article.title,
             "image": article.image_url ? [article.image_url] : ["https://www.neuro.educatimo.com/img/hero-background.jpeg"],
@@ -846,7 +903,9 @@ app.get('/blog/:slug', async (req, res) => {
             lang: isoLang,
             terms: terms,
             currentPath: `/blog/${slug}?language=${language}`,
-            currentUrl: `https://www.neuro.educatimo.com/blog/${slug}?language=${language}`,
+            currentUrl: `https://www.neuro.educatimo.com/blog/${slug}`,
+            canonicalUrl: `https://www.neuro.educatimo.com/blog/${slug}`,
+            alternateUrls,
             pageTitle: article.title,
             metaDescription: article.summary,
             keywords: article.keywords,

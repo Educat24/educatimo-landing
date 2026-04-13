@@ -42,9 +42,17 @@
                 content="<%= typeof currentUrl !== 'undefined' ? currentUrl : 'https://neuro.educatimo.com' %>">
             <meta property="og:locale" content="<%= typeof ogLocale !== 'undefined' ? ogLocale : 'ru_RU' %>">
 
-            <% if (typeof currentUrl !=='undefined' && typeof lang !=='undefined' ) { %>
+            <% if (typeof canonicalUrl !== 'undefined' && canonicalUrl) { %>
+                <link rel="canonical" href="<%= canonicalUrl %>" />
+            <% } %>
+
+            <% if (typeof alternateUrls !== 'undefined' && alternateUrls) { %>
+                <% Object.keys(alternateUrls).forEach(function(hrefLang) { %>
+                    <link rel="alternate" hreflang="<%= hrefLang %>" href="<%= alternateUrls[hrefLang] %>" />
+                <% }); %>
+            <% } else if (typeof currentUrl !== 'undefined' && typeof lang !== 'undefined') { %>
                 <link rel="alternate" hreflang="<%= lang %>" href="<%= currentUrl %>" />
-                <% } %>
+            <% } %>
 
                     <% if (typeof schemaJson !=='undefined' ) { %>
                         <script type="application/ld+json">
