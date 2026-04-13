@@ -66,6 +66,17 @@ function toDbLang(lang) {
     return lang;
 }
 
+function buildAlternateMap(rows, baseUrl) {
+    const altMap = {};
+    (rows || []).forEach(row => {
+        const iso = toIsoLang(row.language || 'ru');
+        if (!altMap[iso]) {
+            altMap[iso] = `${baseUrl}/blog/${row.slug}`;
+        }
+    });
+    return altMap;
+}
+
 // View Engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -731,11 +742,7 @@ app.get('/sitemap.xml', async (req, res) => {
             const lastmod = new Date(date).toISOString();
             const key = article.translation_id || `self:${article.slug}`;
             const group = translationGroups.get(key) || [article];
-            const altMap = {};
-            group.forEach(row => {
-                const iso = toIsoLang(row.language || 'ru');
-                altMap[iso] = `${baseUrl}/blog/${row.slug}`;
-            });
+            const altMap = buildAlternateMap(group, baseUrl);
             const xDefault = altMap.en || altMap.uk || altMap.ru || `${baseUrl}/blog/${article.slug}`;
             xml += `
    <url>
@@ -851,11 +858,7 @@ app.get('/blog/:slug', async (req, res) => {
             if (trResult.rows.length > 0) translations = trResult.rows;
         }
 
-        const alternateUrls = {};
-        translations.forEach(row => {
-            const iso = toIsoLang(row.language || 'ru');
-            alternateUrls[iso] = `https://www.neuro.educatimo.com/blog/${row.slug}`;
-        });
+        const alternateUrls = buildAlternateMap(translations, 'https://www.neuro.educatimo.com');
         alternateUrls['x-default'] = alternateUrls.en || alternateUrls.uk || alternateUrls.ru || `https://www.neuro.educatimo.com/blog/${slug}`;
 
         // Auto-linking
