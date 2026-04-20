@@ -6,6 +6,13 @@ const hasMailPass = !!(process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD)
 if (!hasMailUser || !hasMailPass) {
     console.warn('Почта отключена: в server/.env должны быть GMAIL_USER и GMAIL_APP_PASSWORD (без пробелов вокруг =)');
 }
+if (!process.env.SESSION_SECRET) {
+    console.error('FATAL: SESSION_SECRET not set in server/.env');
+    process.exit(1);
+}
+if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) {
+    console.warn('Warning: ADMIN_USERNAME/ADMIN_PASSWORD not set — admin panel login disabled');
+}
 
 // Brevo transactional email
 const { BrevoClient } = require('@getbrevo/brevo');
@@ -29,8 +36,12 @@ const app = express();
 const port = 3000;
 
 // Database configuration (DATABASE_URL on production)
+if (!process.env.DATABASE_URL) {
+    console.error('FATAL: DATABASE_URL not set in server/.env');
+    process.exit(1);
+}
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://cognitive_tests_user:NewPasswordForCognitiveDb-2025!@localhost:5432/cognitive_tests_db'
+    connectionString: process.env.DATABASE_URL
 });
 
 // Middleware
@@ -87,7 +98,7 @@ app.use(session({
         pool: pool,                // Connection pool
         tableName: 'session'       // Use custom table name (default is 'session')
     }),
-    secret: 'neuro-educatimo-secret-key-2025',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false, // Recommended for login sessions
     cookie: { maxAge: 30 * 24 * 60 * 60 * 1000, secure: false } // 30 days
@@ -137,10 +148,12 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    // Hardcoded credentials as requested
-    // Login: admin
-    // Password: NeuroPassword2025
-    if (username === 'admin' && password === 'NeuroPassword2025') {
+    if (
+        process.env.ADMIN_USERNAME &&
+        process.env.ADMIN_PASSWORD &&
+        username === process.env.ADMIN_USERNAME &&
+        password === process.env.ADMIN_PASSWORD
+    ) {
         req.session.isAuthenticated = true;
         res.redirect('/admin');
     } else {
