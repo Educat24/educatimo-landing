@@ -164,12 +164,14 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-cs" data-lang="cs">
                     <input type="hidden" name="source" value="landing_form_v2">
+                    <input type="hidden" name="lang" value="cs">
                     <label for="org-name-cs">Název organizace</label>
                     <input type="text" id="org-name-cs" name="org_name" placeholder="Centrum rozvoje „Sluníčko"" required>
                     <label for="email-cs">Email</label>
                     <input type="email" id="email-cs" name="email" placeholder="email@example.com" required>
                     <label for="phone-cs">Telefon</label>
                     <input type="tel" id="phone-cs" name="phone" placeholder="+420 XXX XXX XXX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Zadejte číslo propojené s Telegramem — napíšeme vám tam.</p>
                     <label for="org-type-cs">Typ instituce</label>
                     <select id="org-type-cs" name="org_type" required>
                         <option value="" disabled selected>—</option>
@@ -202,6 +204,46 @@
 
     <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
+    <script>
+        (function(){
+            var form = document.getElementById('waitlist-form-cs');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var button = form.querySelector('button[type="submit"]');
+                    var messageDiv = document.getElementById('form-message-cs');
+                    button.disabled = true;
+                    button.innerText = "Odesílání...";
+                    fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            org_name: form.querySelector('[name="org_name"]').value,
+                            email: form.querySelector('[name="email"]').value,
+                            phone: form.querySelector('[name="phone"]').value,
+                            org_type: form.querySelector('[name="org_type"]').value,
+                            students_count: form.querySelector('[name="students_count"]').value,
+                            source: 'landing_form_v2',
+                            language: 'cs'
+                        })
+                    }).then(function(r){ return r.json(); }).then(function(data){
+                        if (data.success) {
+                            messageDiv.innerHTML = '<p style="color:#22c55e; font-weight:600;">✅ Děkujeme! Obdrželi jsme váš požadavek. Očekávejte e-mail s odkazem pro rezervaci dema.</p>';
+                            form.reset();
+                        } else {
+                            messageDiv.innerHTML = '<p style="color:#ef4444;">Chyba. Zkuste to znovu.</p>';
+                            button.disabled = false;
+                            button.innerText = "Objednat demonstraci (15 min)";
+                        }
+                    }).catch(function(){
+                        messageDiv.innerHTML = '<p style="color:#ef4444;">Chyba sítě. Zkuste to znovu.</p>';
+                        button.disabled = false;
+                        button.innerText = "Objednat demonstraci (15 min)";
+                    });
+                });
+            }
+        })();
+    </script>
     <script>
         (function(){
             var track=document.getElementById('vis-track');

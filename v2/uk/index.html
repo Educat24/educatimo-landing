@@ -534,12 +534,14 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-ua" data-lang="uk">
                     <input type="hidden" name="source" value="landing_form_v2">
+                    <input type="hidden" name="lang" value="uk">
                     <label for="org-name-ua">Назва організації</label>
                     <input type="text" id="org-name-ua" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
                     <label for="email-ua">Email</label>
                     <input type="email" id="email-ua" name="email" placeholder="email@example.com" required>
                     <label for="phone-ua">Телефон</label>
                     <input type="tel" id="phone-ua" name="phone" placeholder="+380 XX XXX XX XX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Вкажіть номер, прив'язаний до Telegram — ми напишемо вам там.</p>
                     <label for="org-type-ua">Тип закладу</label>
                     <select id="org-type-ua" name="org_type" required>
                         <option value="" disabled selected>— Оберіть тип —</option>
@@ -641,7 +643,7 @@
                     })
                 }).then(function (r) { return r.json(); }).then(function (data) {
                     if (data.success) {
-                        messageDiv.innerHTML = '<p style="color:#22c55e; font-weight:600;">✅ Дякуємо! Ми зв\'яжемося з вами найближчим часом.</p>';
+                        messageDiv.innerHTML = '<p style="color:#22c55e; font-weight:600;">✅ Дякуємо! Ми отримали вашу заявку. Очікуйте листа з посиланням для запису на демо.</p>';
                         form.reset();
                     } else {
                         messageDiv.innerHTML = '<p style="color:#ef4444;">Помилка. Спробуйте ще раз.</p>';

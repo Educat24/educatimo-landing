@@ -192,6 +192,9 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'students_count') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN students_count VARCHAR(50);
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'preferred_contact') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN preferred_contact VARCHAR(50);
+                END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'source') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN source VARCHAR(50) DEFAULT 'landing_form';
                 END IF;
@@ -255,6 +258,7 @@ function getLangLabel(lang) {
 // Send registration notification to owner. Uses env: RECIPIENT_EMAIL, EMAIL_USER, EMAIL_PASS (or GMAIL_USER, GMAIL_APP_PASSWORD).
 async function sendRegistrationEmail(data) {
     const { email, center_name, lang, phone, org_type, students_count, source, quiz_answers,
+            preferred_contact,
             utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer } = data;
     const to = process.env.RECIPIENT_EMAIL || 'svetlichnyioleksiy@gmail.com';
     const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
@@ -267,6 +271,7 @@ async function sendRegistrationEmail(data) {
     const sourceLabel = source === 'quiz' ? 'Квиз (/uk/quiz)' : 'Лендинг (форма регистрации)';
     const orgTypeMap = { center: 'Навч. центр / Learning center', school: 'Школа / School', neuro: 'Нейропсихол. центр / Neuropsych. center', other: 'Інше / Other' };
     const studentsMap = { lt50: 'До 50 учнів', '50to200': '50–200 учнів', gt200: 'Більше 200 учнів' };
+    const contactMap = { telegram: 'Telegram', whatsapp: 'WhatsApp' };
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: { user, pass }
@@ -296,11 +301,12 @@ async function sendRegistrationEmail(data) {
         from: user,
         to,
         subject: `Нова реєстрація: ${center_name}`,
-        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${utmSection}${quizSection}`,
+        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nМесенджер: ${contactMap[preferred_contact] || preferred_contact || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${utmSection}${quizSection}`,
         html: `<table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
             <tr><td style="padding:6px 12px;color:#666">Організація:</td><td style="padding:6px 12px"><strong>${center_name}</strong></td></tr>
             <tr><td style="padding:6px 12px;color:#666">Email:</td><td style="padding:6px 12px">${email}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Телефон:</td><td style="padding:6px 12px">${phone || '—'}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Месенджер:</td><td style="padding:6px 12px">${contactMap[preferred_contact] || preferred_contact || '—'}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Тип закладу:</td><td style="padding:6px 12px">${orgTypeMap[org_type] || org_type || '—'}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">К-сть учнів:</td><td style="padding:6px 12px">${studentsMap[students_count] || students_count || '—'}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Мова:</td><td style="padding:6px 12px">${langLabel}</td></tr>
@@ -332,14 +338,13 @@ const BREVO_I18N = {
             subject:  (name) => `${name}, дякуємо за реєстрацію — ось що далі`,
             greeting: (name) => `Вітаємо, ${name}! 👋`,
             p1:       'Дякуємо за реєстрацію в Neuro.Educatimo.',
-            p2:       (bold) => `Протягом кількох годин ми активуємо ваш <strong>${bold}</strong> та надішлемо запрошення для входу в платформу.`,
-            p2bold:   '7 днів безкоштовного доступу',
-            p3:       'А поки що — подивіться коротке відео про те, як платформа виглядає зсередини:',
-            nextTitle: 'Що буде далі:',
+            p2:       'Ми отримали вашу заявку і зв\'яжемося з вами для проведення короткого демо.',
+            p3:       'А поки що — подивіться як виглядає AI-звіт після тестування учня:',
+            nextTitle: 'Наступний крок — записатись на демо:',
             steps: [
-                '✅ &nbsp;Ми активуємо ваш акаунт',
-                '📧 &nbsp;Надішлемо запрошення з посиланням для входу',
-                '🚀 &nbsp;Повний доступ на 7 днів безкоштовно',
+                '📅 &nbsp;Оберіть зручний час — це займе 1 хвилину',
+                '🎥 &nbsp;Покажемо платформу зсередини: тести, AI-звіти, рекомендації для батьків',
+                '🚀 &nbsp;Після демо отримаєте 7 днів безкоштовного доступу',
             ],
         },
         quiz: {
@@ -443,10 +448,17 @@ function buildLandingEmailHtml(orgName, lang = 'uk') {
   <tr><td style="padding:40px 40px 24px;">
     <h1 style="margin:0 0 16px;font-size:24px;color:#1B4F72;">${l.greeting(orgName)}</h1>
     <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p1}</p>
-    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p2(l.p2bold)}</p>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p2}</p>
     <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p3}</p>
   </td></tr>
   ${_brevoVideoBlock(t)}
+  <tr><td style="padding:0 40px 24px;text-align:center;">
+    <a href="https://calendly.com/alekssve/neuro-educatimo"
+       style="display:inline-block;background:#1B4F72;color:#fff;text-decoration:none;
+              padding:16px 36px;border-radius:8px;font-size:16px;font-weight:bold;">
+      📅 Записатись на демо
+    </a>
+  </td></tr>
   <tr><td style="padding:0 40px 32px;">
     <table width="100%" style="background:#EBF5FB;border-radius:8px;border-left:4px solid #2E86C1;">
     <tr><td style="padding:20px 24px;">
@@ -545,6 +557,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     // Support both old field name (center_name) and new (org_name)
     const center_name = req.body.org_name || req.body.center_name;
     const phone = req.body.phone || null;
+    const preferred_contact = req.body.preferred_contact || null;
     const org_type = req.body.org_type || null;
     const students_count = req.body.students_count || null;
     const source = req.body.source || 'landing_form';
@@ -571,9 +584,9 @@ app.post('/api/register', parseForm, async (req, res) => {
 
     try {
         await pool.query(
-            `INSERT INTO landing_waitlist (email, center_name, lang, phone, org_type, students_count, source, quiz_answers)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-            [email, center_name, lang || null, phone, org_type, students_count, source, quiz_answers ? JSON.stringify(quiz_answers) : null]
+            `INSERT INTO landing_waitlist (email, center_name, lang, phone, preferred_contact, org_type, students_count, source, quiz_answers)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [email, center_name, lang || null, phone, preferred_contact, org_type, students_count, source, quiz_answers ? JSON.stringify(quiz_answers) : null]
         );
         dbOk = true;
     } catch (err) {
@@ -581,7 +594,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     }
 
     try {
-        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, org_type, students_count, source, quiz_answers, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer });
+        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, preferred_contact, org_type, students_count, source, quiz_answers, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer });
         if (sent) emailOk = true;
     } catch (err) {
         console.error('Error sending registration email:', err.message || err);

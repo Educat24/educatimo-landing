@@ -164,12 +164,14 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-ru" data-lang="ru">
                     <input type="hidden" name="source" value="landing_form_v2">
+                    <input type="hidden" name="lang" value="ru">
                     <label for="org-name-ru">Название организации</label>
                     <input type="text" id="org-name-ru" name="org_name" placeholder="Центр развития «Солнышко»" required>
                     <label for="email-ru">Email</label>
                     <input type="email" id="email-ru" name="email" placeholder="email@example.com" required>
                     <label for="phone-ru">Телефон</label>
                     <input type="tel" id="phone-ru" name="phone" placeholder="+7 (XXX) XXX-XX-XX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Укажите номер, привязанный к Telegram — мы напишем вам там.</p>
                     <label for="org-type-ru">Тип учреждения</label>
                     <select id="org-type-ru" name="org_type" required>
                         <option value="" disabled selected>—</option>
@@ -202,6 +204,46 @@
 
     <script src="/js/demo-slider.js"></script>
     <script src="/js/lang-form.js"></script>
+    <script>
+        (function(){
+            var form = document.getElementById('waitlist-form-ru');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    var button = form.querySelector('button[type="submit"]');
+                    var messageDiv = document.getElementById('form-message-ru');
+                    button.disabled = true;
+                    button.innerText = "Отправляем...";
+                    fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            org_name: form.querySelector('[name="org_name"]').value,
+                            email: form.querySelector('[name="email"]').value,
+                            phone: form.querySelector('[name="phone"]').value,
+                            org_type: form.querySelector('[name="org_type"]').value,
+                            students_count: form.querySelector('[name="students_count"]').value,
+                            source: 'landing_form_v2',
+                            language: 'ru'
+                        })
+                    }).then(function(r){ return r.json(); }).then(function(data){
+                        if (data.success) {
+                            messageDiv.innerHTML = '<p style="color:#22c55e; font-weight:600;">✅ Спасибо! Мы получили вашу заявку. Ожидайте письма со ссылкой для записи на демо.</p>';
+                            form.reset();
+                        } else {
+                            messageDiv.innerHTML = '<p style="color:#ef4444;">Ошибка. Попробуйте ещё раз.</p>';
+                            button.disabled = false;
+                            button.innerText = "Заказать демонстрацию (15 мин)";
+                        }
+                    }).catch(function(){
+                        messageDiv.innerHTML = '<p style="color:#ef4444;">Ошибка сети. Попробуйте ещё раз.</p>';
+                        button.disabled = false;
+                        button.innerText = "Заказать демонстрацию (15 мин)";
+                    });
+                });
+            }
+        })();
+    </script>
     <script>
         (function(){
             var track=document.getElementById('vis-track');
