@@ -1,38 +1,1405 @@
 <!DOCTYPE html>
 <html lang="uk">
-
 <head>
-    <meta charset="UTF-8">
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PXBC78DR');</script>
-    <!-- End Google Tag Manager -->
-    <script>
-        !function (f, b, e, v, n, t, s) {
-            if (f.fbq) return; n = f.fbq = function () {
-                n.callMethod ?
-                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-            };
-            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-            n.queue = []; t = b.createElement(e); t.async = !0;
-            t.src = v; s = b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t, s)
-        }(window, document, 'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-        fbq('init', '1427039129205224');
-        fbq('track', 'PageView');
-    </script>
-    <noscript><img height="1" width="1" style="display:none"
-            src="https://www.facebook.com/tr?id=1427039129205224&ev=PageView&noscript=1" /></noscript>
-    <!-- UTM Capture Script -->
-    <script>
-    (function() {
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuro Educatimo · SaaS-платформа для освітніх закладів</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+    :root{
+      --bg:#07111e;
+      --panel:#0f1b2e;
+      --panel-2:#13253d;
+      --panel-3:#17304d;
+      --line:rgba(255,255,255,.09);
+      --line-strong:rgba(125,211,252,.18);
+      --text:#edf4fd;
+      --muted:#a9b8cb;
+      --muted-2:#7f90a8;
+      --accent:#7dd3fc;
+      --accent-2:#60a5fa;
+      --warm:#f59e0b;
+      --good:#34d399;
+      --shadow:0 30px 80px rgba(0,0,0,.34);
+      --radius:26px;
+      --max:1240px;
+      --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+      --sans:"Manrope",Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:var(--sans);
+      line-height:1.55;
+      background:
+        radial-gradient(circle at top left, rgba(96,165,250,.16), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(125,211,252,.12), transparent 22%),
+        linear-gradient(180deg, #07111e 0%, #091321 45%, #0a1422 100%);
+    }
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,.03), transparent 18%),
+        radial-gradient(circle at 70% 30%, rgba(255,255,255,.025), transparent 16%),
+        radial-gradient(circle at 55% 78%, rgba(255,255,255,.02), transparent 20%);
+      mix-blend-mode:screen;
+      opacity:.75;
+    }
+
+    a{color:inherit}
+    .shell{
+      max-width:var(--max);
+      margin:0 auto;
+      padding:28px 20px 80px;
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:16px;
+      padding:18px 22px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(15,27,46,.72);
+      backdrop-filter:blur(18px);
+      box-shadow:var(--shadow);
+      position:sticky;
+      top:16px;
+      z-index:20;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+    .brand-logo{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      object-fit:contain;
+      display:block;
+      flex:0 0 auto;
+      box-shadow:0 10px 24px rgba(14,165,233,.12);
+      background:#fff;
+      padding:2px;
+    }
+    .brand-title{
+      display:flex;
+      flex-direction:column;
+      gap:1px;
+      min-width:0;
+    }
+    .brand-title strong{
+      font-size:1rem;
+      letter-spacing:.02em;
+    }
+    .brand-title span{
+      color:var(--muted);
+      font-size:.88rem;
+    }
+    .nav{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .lang-switcher{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-left:6px;
+      padding-left:14px;
+      border-left:1px solid rgba(255,255,255,.08);
+    }
+    .lang-switcher a{
+      text-decoration:none;
+      color:var(--muted);
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.05em;
+      text-transform:uppercase;
+      padding:8px 11px;
+      border-radius:999px;
+      border:1px solid transparent;
+      transition:.2s ease;
+    }
+    .lang-switcher a:hover{
+      color:var(--text);
+      background:rgba(255,255,255,.06);
+    }
+    .lang-switcher a.active{
+      color:#fff;
+      background:rgba(125,211,252,.14);
+      border-color:rgba(125,211,252,.18);
+    }
+    .nav a{
+      text-decoration:none;
+      color:var(--muted);
+      font-size:.92rem;
+      padding:8px 12px;
+      border-radius:999px;
+      transition:.2s ease;
+    }
+    .nav a:hover{
+      color:var(--text);
+      background:rgba(255,255,255,.06);
+    }
+
+    .hero{
+      margin-top:26px;
+      display:grid;
+      grid-template-columns:1.08fr .92fr;
+      gap:22px;
+      align-items:stretch;
+    }
+    .panel,
+    .section,
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(18,35,59,.88), rgba(13,24,42,.94));
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .hero-copy{
+      padding:42px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero-copy::after{
+      content:"";
+      position:absolute;
+      inset:auto -12% -26% auto;
+      width:360px;
+      height:360px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(125,211,252,.16) 0%, rgba(96,165,250,.06) 35%, transparent 70%);
+      pointer-events:none;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 14px;
+      border-radius:999px;
+      border:1px solid rgba(125,211,252,.22);
+      color:var(--accent);
+      background:rgba(125,211,252,.08);
+      font-size:.82rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      font-weight:800;
+    }
+    h1{
+      margin:18px 0 16px;
+      font-family:var(--serif);
+      font-size:clamp(2.8rem, 5vw, 5.2rem);
+      line-height:1;
+      letter-spacing:-.04em;
+      max-width:12ch;
+    }
+    .lead{
+      font-size:1.08rem;
+      color:var(--muted);
+      max-width:60ch;
+      margin:0 0 24px;
+    }
+    .cta-row{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:22px;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      text-decoration:none;
+      border-radius:999px;
+      padding:14px 18px;
+      font-weight:800;
+      transition:transform .18s ease, background .18s ease, border-color .18s ease;
+      border:1px solid transparent;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{
+      background:linear-gradient(135deg, #38bdf8, #2563eb);
+      color:#fff;
+      box-shadow:0 12px 24px rgba(37,99,235,.32);
+    }
+    .btn-secondary{
+      background:rgba(255,255,255,.03);
+      border-color:rgba(255,255,255,.12);
+      color:var(--text);
+    }
+    .bullets{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:14px;
+      margin-top:24px;
+    }
+    .bullet{
+      padding:14px 14px 15px;
+      border-radius:20px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .bullet strong{
+      display:block;
+      font-size:.92rem;
+      margin-bottom:4px;
+    }
+    .bullet span{
+      color:var(--muted);
+      font-size:.88rem;
+    }
+
+    .hero-preview{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+    .preview-frame{
+      flex:1;
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.08);
+      background:
+        linear-gradient(180deg, rgba(8,17,31,.08), rgba(8,17,31,.58)),
+        linear-gradient(135deg, rgba(96,165,250,.14), rgba(245,158,11,.12));
+      padding:18px;
+      position:relative;
+      overflow:hidden;
+      min-height:360px;
+    }
+    .preview-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .window-dots{
+      display:flex;
+      gap:7px;
+    }
+    .window-dots span{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:rgba(255,255,255,.22);
+    }
+    .window-dots span:nth-child(1){background:#fb7185}
+    .window-dots span:nth-child(2){background:#f59e0b}
+    .window-dots span:nth-child(3){background:#34d399}
+    .frame-label{
+      font-size:.8rem;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .mock-card{
+      background:rgba(13,24,42,.86);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:22px;
+      padding:18px;
+      margin-bottom:14px;
+    }
+    .mock-card h3{
+      margin:0 0 10px;
+      font-size:1.45rem;
+      line-height:1.18;
+      font-family:var(--serif);
+    }
+    .mock-card p{
+      margin:0;
+      color:var(--muted);
+      max-width:44ch;
+    }
+    .tag-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 16px;
+      border-radius:999px;
+      font-size:.95rem;
+      color:var(--text);
+      background:rgba(125,211,252,.08);
+      border:1px solid rgba(125,211,252,.18);
+    }
+    .mock-kpi{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:10px;
+    }
+    .kpi{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:18px;
+      padding:14px;
+    }
+    .kpi strong{
+      display:block;
+      font-size:1.1rem;
+      margin-top:6px;
+    }
+    .kpi span{
+      color:var(--muted);
+      font-size:.82rem;
+    }
+
+    .trust-ribbon{
+      margin-top:22px;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:16px;
+    }
+    .stat-card{
+      padding:20px;
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.08);
+      background:linear-gradient(180deg, rgba(17,32,54,.94), rgba(11,22,38,.98));
+      position:relative;
+      overflow:hidden;
+    }
+    .stat-card::after{
+      content:"";
+      position:absolute;
+      inset:auto -18% -30% auto;
+      width:160px;
+      height:160px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(96,165,250,.18), transparent 72%);
+    }
+    .stat-card strong{
+      display:block;
+      font-size:2rem;
+      line-height:1;
+      letter-spacing:-.04em;
+      margin-bottom:8px;
+      font-family:var(--serif);
+    }
+    .stat-card span{
+      color:var(--muted);
+      font-size:.92rem;
+    }
+
+    .section{
+      margin-top:22px;
+      padding:28px;
+    }
+    .section-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:18px;
+      margin-bottom:20px;
+      flex-wrap:wrap;
+    }
+    .section h2{
+      margin:0;
+      font-family:var(--serif);
+      font-size:clamp(1.8rem, 3vw, 2.7rem);
+      line-height:1.06;
+      letter-spacing:-.02em;
+    }
+    .section p.sub{
+      margin:0;
+      color:var(--muted);
+      max-width:60ch;
+    }
+    .grid-3{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:16px;
+    }
+    .card{
+      padding:20px;
+      background:linear-gradient(180deg, rgba(18,35,59,.96), rgba(12,24,41,.96));
+      transition:transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .card:hover{
+      transform:translateY(-3px);
+      border-color:rgba(125,211,252,.18);
+      background:linear-gradient(180deg, rgba(21,41,68,.98), rgba(13,24,42,.98));
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      margin-bottom:14px;
+    }
+    .p1{
+      background:rgba(251,113,133,.12);
+      color:#ffb4c0;
+      border:1px solid rgba(251,113,133,.18);
+    }
+    .p2{
+      background:rgba(245,158,11,.12);
+      color:#ffd38c;
+      border:1px solid rgba(245,158,11,.18);
+    }
+    .good{
+      background:rgba(52,211,153,.12);
+      color:#b7f7df;
+      border:1px solid rgba(52,211,153,.18);
+    }
+    .card h3{
+      margin:0 0 8px;
+      font-size:1.12rem;
+      line-height:1.25;
+    }
+    .card p{
+      margin:0;
+      color:var(--muted);
+    }
+    .split{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:18px;
+    }
+    .mini-card{
+      padding:20px;
+      background:linear-gradient(180deg, rgba(23,48,77,.86), rgba(14,25,42,.92));
+    }
+    .mini-card h3{
+      margin:0 0 12px;
+      font-size:1rem;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      color:var(--accent);
+    }
+    .mini-card ul{
+      margin:0;
+      padding-left:18px;
+      color:var(--muted);
+    }
+    .mini-card li{margin:8px 0}
+    .flow{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0, 1fr));
+      gap:12px;
+      margin-top:18px;
+    }
+    .flow-step{
+      padding:16px;
+      border-radius:20px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      min-height:160px;
+      transition:transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+    .flow-step:hover{
+      transform:translateY(-3px);
+      border-color:rgba(125,211,252,.18);
+      background:rgba(255,255,255,.045);
+    }
+    .flow-step .num{
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(96,165,250,.18);
+      color:#d7ebff;
+      font-weight:800;
+      margin-bottom:12px;
+      border:1px solid rgba(96,165,250,.2);
+    }
+    .flow-step strong{
+      display:block;
+      margin-bottom:8px;
+      font-size:1rem;
+    }
+    .flow-step span{
+      color:var(--muted);
+      font-size:.88rem;
+    }
+    .quote{
+      display:grid;
+      grid-template-columns:1.2fr .8fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .quote-card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(18,35,59,.98), rgba(12,24,41,.96));
+      border-radius:var(--radius);
+      padding:28px;
+    }
+    .quote-card h3{
+      margin:0 0 10px;
+      font-size:1.15rem;
+    }
+    .quote-card p{
+      margin:0;
+      color:var(--muted);
+    }
+    .quote-proof{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .proof-chip{
+      border-radius:22px;
+      padding:18px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .proof-chip strong{
+      display:block;
+      font-size:1.25rem;
+      margin-bottom:6px;
+      color:#f8fbff;
+    }
+    .proof-chip span{
+      color:var(--muted);
+      font-size:.88rem;
+    }
+    .footer-cta{
+      margin-top:22px;
+      padding:28px;
+      border-radius:var(--radius);
+      border:1px solid rgba(125,211,252,.14);
+      background:
+        radial-gradient(circle at top right, rgba(96,165,250,.16), transparent 30%),
+        linear-gradient(180deg, rgba(18,35,59,.98), rgba(12,24,41,.98));
+      box-shadow:var(--shadow);
+      display:flex;
+      justify-content:space-between;
+      gap:18px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .footer-cta h2{
+      margin:0 0 10px;
+      font-family:var(--serif);
+      font-size:clamp(1.8rem, 3vw, 2.6rem);
+      line-height:1.06;
+    }
+    .footer-cta p{
+      margin:0;
+      color:var(--muted);
+      max-width:62ch;
+    }
+    .registration-section{
+      margin-top:22px;
+      padding:28px;
+      border-radius:var(--radius);
+      border:1px solid rgba(125,211,252,.14);
+      background:
+        radial-gradient(circle at top right, rgba(96,165,250,.16), transparent 30%),
+        linear-gradient(180deg, rgba(18,35,59,.98), rgba(12,24,41,.98));
+      box-shadow:var(--shadow);
+    }
+    .registration-shell{
+      display:grid;
+      grid-template-columns:.92fr 1.08fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .registration-copy,
+    .registration-panel{
+      border-radius:24px;
+      border:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.03);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+    }
+    .registration-copy{
+      padding:28px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      gap:18px;
+    }
+    .registration-copy h2{
+      margin:10px 0 10px;
+      font-family:var(--serif);
+      font-size:clamp(2rem, 3.2vw, 3.1rem);
+      line-height:1.02;
+      letter-spacing:-.03em;
+    }
+    .registration-copy p{
+      margin:0;
+      color:var(--muted);
+      max-width:60ch;
+    }
+    .registration-points{
+      display:grid;
+      gap:12px;
+      margin-top:auto;
+    }
+    .registration-point{
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(8,17,31,.54);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .registration-point strong{
+      display:block;
+      font-size:.98rem;
+      margin-bottom:3px;
+    }
+    .registration-point span{
+      color:var(--muted);
+      font-size:.88rem;
+    }
+    .registration-panel{
+      padding:24px;
+      background:
+        linear-gradient(180deg, rgba(7,17,30,.64), rgba(13,24,42,.9));
+    }
+    .registration-form{
+      display:grid;
+      gap:14px;
+    }
+    .registration-alert{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:14px 16px;
+      border-radius:18px;
+      border:1px solid rgba(125,211,252,.2);
+      background:linear-gradient(180deg, rgba(56,189,248,.14), rgba(37,99,235,.08));
+      color:var(--text);
+      margin-bottom:2px;
+    }
+    .registration-alert.full{
+      grid-column:1 / -1;
+    }
+    .registration-alert strong{
+      display:block;
+      font-size:.92rem;
+      margin-bottom:2px;
+    }
+    .registration-alert span{
+      color:var(--muted);
+      font-size:.86rem;
+      line-height:1.45;
+    }
+    .registration-alert .pill{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:28px;
+      height:28px;
+      border-radius:999px;
+      background:rgba(125,211,252,.18);
+      border:1px solid rgba(125,211,252,.24);
+      color:var(--accent);
+      font-weight:900;
+    }
+    .registration-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+    }
+    .field{
+      display:grid;
+      gap:8px;
+    }
+    .field.full{
+      grid-column:1 / -1;
+    }
+    .field label{
+      font-size:.84rem;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.01em;
+    }
+    .field input,
+    .field select{
+      width:100%;
+      border:1px solid rgba(255,255,255,.11);
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:14px 15px;
+      font:inherit;
+      outline:none;
+      transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+    .field input::placeholder{
+      color:rgba(169,184,203,.64);
+    }
+    .field input:focus,
+    .field select:focus{
+      border-color:rgba(125,211,252,.48);
+      box-shadow:0 0 0 3px rgba(125,211,252,.16);
+      background:rgba(255,255,255,.055);
+    }
+    .form-note{
+      color:var(--muted);
+      font-size:.86rem;
+      line-height:1.55;
+    }
+    .form-note a{
+      color:var(--accent);
+      text-decoration:none;
+    }
+    .form-note a:hover{
+      text-decoration:underline;
+    }
+    .form-message{
+      min-height:24px;
+      font-size:.95rem;
+    }
+    .registration-panel .btn{
+      width:100%;
+      margin-top:4px;
+    }
+    .footer{
+      margin-top:22px;
+      padding:18px 6px 0;
+      color:var(--muted-2);
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      font-size:.92rem;
+    }
+    .accent-line{
+      height:1px;
+      background:linear-gradient(90deg, transparent, rgba(125,211,252,.45), transparent);
+      margin:18px 0;
+    }
+    .demo-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin-top:18px;
+      align-items:stretch;
+    }
+    .report-card{
+      display:flex;
+      flex-direction:column;
+      padding:20px;
+      border-radius:22px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      min-height:0;
+    }
+    .report-card.teacher{
+      min-height:0;
+    }
+    .window-tag{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:800;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      margin-bottom:12px;
+      border:1px solid transparent;
+    }
+    .window-tag.parent{
+      background:rgba(96,165,250,.12);
+      color:#b9dcff;
+      border-color:rgba(96,165,250,.2);
+    }
+    .window-tag.teacher{
+      background:rgba(52,211,153,.12);
+      color:#bbf7d0;
+      border-color:rgba(52,211,153,.18);
+    }
+    .report-card h3{
+      margin:0 0 8px;
+      font-size:1rem;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      color:var(--accent);
+    }
+    .report-card p{
+      margin:0;
+      color:var(--muted);
+    }
+    .report-scroll-viewport{
+      position:relative;
+      width:100%;
+      height:620px;
+      overflow-y:auto;
+      overflow-x:hidden;
+      border-radius:18px;
+      box-shadow:0 14px 30px rgba(0,0,0,.14);
+      margin-top:14px;
+      background:#fff;
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+      scroll-behavior:smooth;
+      scroll-snap-type:y mandatory;
+    }
+    .laptop-frame{
+      position:relative;
+      width:100%;
+      height:620px;
+      margin-top:14px;
+      border-radius:20px;
+      overflow:hidden;
+      background:#10151e;
+      box-shadow:0 22px 45px rgba(0,0,0,.24);
+    }
+    .laptop-photo{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      object-position:center bottom;
+      display:block;
+    }
+    .laptop-screen-slot{
+      position:absolute;
+      left:34.2%;
+      top:28.0%;
+      width:67.0%;
+      height:42.0%;
+      border-radius:0.9%;
+      overflow:hidden;
+      background:#f0f2f5;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+    .report-animated-svg{
+      display:block;
+      width:100%;
+      height:100%;
+      border-radius:0;
+      box-shadow:none;
+      background:#f0f2f5;
+      object-fit:cover;
+      object-position:0% center;
+      transform:none;
+    }
+    .tag-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+    }
+    .report-scroll-viewport::-webkit-scrollbar{
+      display:none;
+    }
+    .report-scroll-track{
+      display:grid;
+      gap:0;
+    }
+    .report-scroll-page{
+      display:block;
+      width:100%;
+      height:auto;
+      scroll-snap-align:start;
+    }
+    .report-svg-object{
+      display:block;
+      width:100%;
+      height:600px;
+      border-radius:18px;
+      overflow:hidden;
+      box-shadow:0 14px 30px rgba(0,0,0,.14);
+      margin-top:14px;
+      background:#fff;
+      border:0;
+    }
+    .bar-list{
+      display:grid;
+      gap:10px;
+      margin-top:14px;
+    }
+    .bar-item{
+      display:grid;
+      gap:6px;
+    }
+    .bar-item .label{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:.88rem;
+      color:var(--muted);
+    }
+    .bar{
+      height:10px;
+      border-radius:999px;
+      overflow:hidden;
+      background:rgba(255,255,255,.06);
+    }
+    .bar > span{
+      display:block;
+      height:100%;
+      border-radius:inherit;
+      background:linear-gradient(90deg, #38bdf8, #60a5fa 60%, #f59e0b);
+    }
+
+    @media (max-width: 1080px){
+      .hero,.split,.quote,.demo-grid{grid-template-columns:1fr}
+      .registration-shell{grid-template-columns:1fr}
+      .flow{grid-template-columns:repeat(2, minmax(0, 1fr))}
+      .grid-3,.bullets,.mock-kpi,.trust-ribbon{grid-template-columns:1fr}
+      .topbar{border-radius:28px; position:static}
+    }
+    @media (max-width: 640px){
+      .shell{padding:16px 12px 40px}
+      .hero-copy,.hero-preview,.section,.footer-cta,.registration-section{padding:20px}
+      h1{max-width:none}
+      .cta-row,.nav,.lang-switcher{width:100%}
+      .nav{justify-content:flex-start}
+      .lang-switcher{padding-left:0;border-left:0}
+      .topbar{padding:16px}
+      .flow{grid-template-columns:1fr}
+      .quote-proof{grid-template-columns:1fr}
+      .registration-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="img/NE_lLOGO.png" alt="Neuro Educatimo">
+        <div class="brand-title">
+          <strong>Neuro Educatimo</strong>
+          <span>SaaS-платформа для освіти</span>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#benefits">Переваги</a>
+        <a href="#flow">Сценарій</a>
+        <a href="#report">Звіт</a>
+        <a href="#audience">Кому підходить</a>
+      </nav>
+      <div class="lang-switcher" aria-label="Мови сайту">
+        <a class="active" href="/uk/">UA</a>
+        <a href="/en/">EN</a>
+        <a href="/ru/">RU</a>
+        <a href="/pl/">PL</a>
+        <a href="/cs/">CZ</a>
+      </div>
+    </header>
+
+    <section class="hero" aria-label="Перший екран">
+      <div class="panel hero-copy">
+        <span class="eyebrow">Підписка для навчальних закладів</span>
+        <h1>Платформа, яка показує прогрес і підсилює продажі.</h1>
+        <p class="lead">
+          Neuro Educatimo - платформа, яка перетворює когнітивне тестування на звіти під брендом вашого закладу, об'єктивний моніторинг якості та сильніший аргумент для утримання клієнтів.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#registration">Запросити демо</a>
+          <a class="btn btn-secondary" href="#registration">Підключити демо доступ</a>
+        </div>
+        <div class="bullets">
+        <div class="bullet">
+            <strong>9 тестів + тренажери</strong>
+            <span>Одна система для моніторингу та тренувань ключових когнітивних навичок.</span>
+          </div>
+          <div class="bullet">
+            <strong>30 хвилин</strong>
+            <span>Швидкий формат, який легко вписати в навчальний день.</span>
+          </div>
+          <div class="bullet">
+            <strong>Ваш бренд</strong>
+            <span>Звіти працюють на ваш заклад, а не на сторонній продукт.</span>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel hero-preview" aria-label="Макет звіту">
+        <div class="preview-frame">
+          <div class="preview-top">
+            <div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="frame-label">кабінет педагога / звіт</div>
+          </div>
+          <div class="mock-card">
+            <span class="eyebrow" style="margin-bottom:12px;">Об'єктивний прогрес</span>
+            <h3>Динаміка розвитку, яку легко продати й пояснити.</h3>
+            <p>Графіки, сильні сторони та зони, які потребують уваги.</p>
+            <div class="tag-row">
+              <span class="tag">Увага</span>
+              <span class="tag">Пам'ять</span>
+              <span class="tag">Мислення</span>
+              <span class="tag">Логіка</span>
+              <span class="tag">Самооцінка</span>
+            </div>
+          </div>
+          <div class="mock-kpi">
+          <div class="kpi">
+            <span>Центр</span>
+            <strong>Об'єктивні дані</strong>
+          </div>
+            <div class="kpi">
+              <span>Батьки</span>
+              <strong>Зрозумілі графіки</strong>
+            </div>
+            <div class="kpi">
+              <span>Команда</span>
+              <strong>Єдиний стандарт</strong>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="trust-ribbon" aria-label="Ключові факти">
+      <div class="stat-card">
+        <strong>9 тестів</strong>
+        <span>Одна система для моніторингу та тренувань ключових когнітивних навичок.</span>
+      </div>
+      <div class="stat-card">
+        <strong>7 днів</strong>
+        <span>Пілотний доступ для швидкого старту.</span>
+      </div>
+      <div class="stat-card">
+        <strong>LTV + upsell</strong>
+        <span>Тестування та моніторинг стають окремою послугою з доданою цінністю.</span>
+      </div>
+    </section>
+
+    <section id="benefits" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Переваги підписки</h2>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <article class="card">
+          <div class="badge p1">Ретеншн</div>
+          <h3>Цифри замість обіцянок</h3>
+          <p>Прогрес у звітах підвищує довіру батьків і зменшує відтік клієнтів.</p>
+        </article>
+        <article class="card">
+          <div class="badge p1">Якість</div>
+          <h3>Один стандарт для всієї команди</h3>
+          <p>Об'єктивні дані дають змогу контролювати якість викладання без припущень.</p>
+        </article>
+        <article class="card">
+          <div class="badge p2">Прибуток</div>
+          <h3>Тестування як окрема платна послуга</h3>
+          <p>Вхідна діагностика, регулярні чекапи та звіти під брендом школи створюють додатковий дохід.</p>
+        </article>
+      </div>
+
+      <div class="accent-line"></div>
+
+      <div class="split">
+        <div class="mini-card">
+          <h3>Для закладу</h3>
+          <ul>
+            <li>Моніторинг розвитку кожної дитини та групи.</li>
+            <li>Звіти, які посилюють довіру батьків і допомагають показати прогрес.</li>
+            <li>Контроль ефективності педагогів та методик.</li>
+          </ul>
+        </div>
+        <div class="mini-card">
+          <h3>Для батьків</h3>
+          <ul>
+            <li>Понятний когнітивний профіль дитини.</li>
+            <li>Підказки, які навички потребують уваги.</li>
+            <li>Відчуття прозорості та вимірюваного результату.</li>
+          </ul>
+        </div>
+        <div class="mini-card">
+          <h3>Формат</h3>
+          <ul>
+            <li>Індивідуально та в групі.</li>
+            <li>Офлайн і онлайн.</li>
+            <li>Гнучко під ваші сценарії роботи.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="flow" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Сценарій роботи</h2>
+        </div>
+      </div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="num">1</div>
+          <strong>Реєстрація учня</strong>
+          <span>Дані потрапляють у систему, а профіль готовий до тестування.</span>
+        </div>
+        <div class="flow-step">
+          <div class="num">2</div>
+          <strong>Ігровий квест</strong>
+          <span>Дитина проходить завдання на планшеті без стресу й перевантаження.</span>
+        </div>
+        <div class="flow-step">
+          <div class="num">3</div>
+          <strong>Автоматичний звіт</strong>
+          <span>Система миттєво формує графіки, профіль і динаміку результатів.</span>
+        </div>
+        <div class="flow-step">
+          <div class="num">4</div>
+          <strong>Робота з батьками</strong>
+          <span>Педагог показує вимірювані результати та аргументує подальші кроки.</span>
+        </div>
+        <div class="flow-step">
+          <div class="num">5</div>
+          <strong>Регулярний моніторинг</strong>
+          <span>Платформа фіксує зміни в динаміці та допомагає коригувати індивідуальний розвиток.</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="report" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Звіт для батьків і вчителя</h2>
+          <p class="sub">Ліворуч - звіт, який батьки отримують після тестування. Праворуч - панель педагога з динамікою, радарами та прогресом.</p>
+        </div>
+      </div>
+
+      <div class="demo-grid">
+        <div class="report-card">
+          <div class="window-tag parent">ДЛЯ БАТЬКІВ</div>
+          <h3>Когнітивний профіль і зрозумілий результат</h3>
+          <p>Реальний PDF-звіт з акцентом на сильні сторони, зони розвитку та рекомендацію повторного моніторингу.</p>
+          <div class="report-scroll-viewport" data-report-scroll aria-label="Сторінки PDF-звіту">
+            <div class="report-scroll-track">
+              <img class="report-scroll-page" src="img/report-karina-1.svg" alt="" aria-hidden="true">
+              <img class="report-scroll-page" src="img/report-karina-2.svg" alt="" aria-hidden="true">
+              <img class="report-scroll-page" src="img/report-karina-3.svg" alt="" aria-hidden="true">
+            </div>
+          </div>
+        </div>
+        <div class="report-card">
+          <div class="window-tag teacher">ДЛЯ ВЧИТЕЛЯ</div>
+          <h3>Панель педагога з динамікою розвитку</h3>
+          <p>Адмінська панель з radar-картами та загальним графіком прогресу для роботи з командою й батьками.</p>
+          <div class="laptop-frame" aria-label="Анімована панель педагога">
+            <img class="laptop-photo" src="img/laptop.png" alt="" aria-hidden="true">
+            <div class="laptop-screen-slot">
+              <img class="report-animated-svg" src="img/dashboard-animated.svg" alt="Анімована панель педагога">
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="audience" class="section">
+      <div class="section-head">
+        <div>
+          <h2>Кому підходить</h2>
+        </div>
+      </div>
+      <div class="grid-3">
+        <article class="card">
+          <div class="badge good">Приватні центри</div>
+          <h3>Утримуйте клієнтів і підсилюйте цінність послуги</h3>
+          <p>Звіти та динаміка допомагають продавати результат, а не абстрактний розвиток.</p>
+        </article>
+        <article class="card">
+          <div class="badge good">Школи та гімназії</div>
+          <h3>Працюйте з класами, групами та методиками прозоро</h3>
+          <p>Платформа дає одну логіку оцінювання для різних учнів і педагогів.</p>
+        </article>
+        <article class="card">
+          <div class="badge good">Нейропсихологічні центри</div>
+          <h3>Працюйте з даними для терапії та розвитку</h3>
+          <p>Платформа допомагає візуалізувати зміни та пояснювати результати батькам зрозумілою мовою.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>Наукова основа</h2>
+        </div>
+      </div>
+      <div class="quote">
+        <div class="quote-card">
+          <h3>Класичні підходи, адаптовані для онлайн-формату</h3>
+          <p>
+            Платформа побудована на підходах, що десятиліттями використовуються в нейропсихології, дитячій психології та педагогічній діагностиці.
+            Завдання адаптовані для онлайн-формату й різних вікових груп із збереженням діагностичної логіки класичних методик оцінювання уваги, пам'яті, мислення, саморегуляції та самооцінки.
+          </p>
+        </div>
+        <div class="quote-proof">
+          <div class="proof-chip">
+            <strong>Wechsler</strong>
+            <span>Підхід до оцінки пам'яті та когнітивних функцій.</span>
+          </div>
+          <div class="proof-chip">
+            <strong>Luria</strong>
+            <span>Нейропсихологічна традиція і логіка діагностики.</span>
+          </div>
+          <div class="proof-chip">
+            <strong>NEPSY-II</strong>
+            <span>Орієнтир для окремих блоків пам'яті та навчання.</span>
+          </div>
+          <div class="proof-chip">
+            <strong>Elkonin</strong>
+            <span>Логіка графічного диктанту та шкільної готовності.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="registration" class="registration-section" aria-label="Форма реєстрації">
+      <div class="registration-shell">
+        <div class="registration-copy">
+          <div>
+            <span class="eyebrow">Запит на демо</span>
+            <h2>Почніть з короткого демо і побачте, як платформа працює на продажі підписки.</h2>
+            <p>
+              Залиште заявку, і ми покажемо, як Neuro Educatimo вбудовується у ваш заклад: від тестування та звітів до регулярного моніторингу й повторних продажів.
+            </p>
+          </div>
+          <div class="registration-points">
+            <div class="registration-point">
+              <strong>Що далі</strong>
+              <span>Ми зв'яжемося з вами, уточнимо формат закладу та підготуємо демонстрацію під вашу задачу.</span>
+            </div>
+            <div class="registration-point">
+              <strong>Пілотний доступ</strong>
+              <span>Ви зможете швидко перевірити платформу в реальному сценарії без зайвої бюрократії.</span>
+            </div>
+            <div class="registration-point">
+              <strong>Підтримка впровадження</strong>
+              <span>Пояснимо, як працює маршрут учня, звіт для батьків і кабінет педагога.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="registration-panel">
+          <form class="registration-form" action="/api/register" method="POST" id="waitlist-form-ua" data-lang="uk">
+            <input type="hidden" name="source" value="landing_form_v2">
+            <input type="hidden" name="lang" value="uk">
+            <div class="registration-grid">
+              <div class="field full">
+                <label for="org-name-ua">Назва закладу</label>
+                <input type="text" id="org-name-ua" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
+              </div>
+              <div class="field">
+                <label for="email-ua">Email</label>
+                <input type="email" id="email-ua" name="email" placeholder="email@example.com" required>
+              </div>
+              <div class="registration-alert full">
+                <div class="pill">i</div>
+                <div>
+                  <strong>Важливо: вкажіть номер з Telegram або WhatsApp</strong>
+                  <span>Ми зв'яжемося з вами саме в месенджері, тому номер має бути прив'язаний до Telegram або WhatsApp.</span>
+                </div>
+              </div>
+              <div class="field">
+                <label for="phone-ua">Номер телефону для Telegram / WhatsApp</label>
+                <input type="tel" id="phone-ua" name="phone" placeholder="+380 XX XXX XX XX" inputmode="tel" required>
+                <span class="form-note" style="margin-top:-2px;">Вкажіть номер, прив'язаний до Telegram — ми напишемо вам там.</span>
+              </div>
+              <div class="field">
+                <label for="preferred-contact-ua">Куди написати в першу чергу</label>
+                <select id="preferred-contact-ua" name="preferred_contact" required>
+                  <option value="" disabled selected>— Оберіть месенджер —</option>
+                  <option value="telegram">Telegram</option>
+                  <option value="whatsapp">WhatsApp</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="org-type-ua">Тип закладу</label>
+                <select id="org-type-ua" name="org_type" required>
+                  <option value="" disabled selected>— Оберіть тип —</option>
+                  <option value="center">Навчальний центр</option>
+                  <option value="school">Школа або гімназія</option>
+                  <option value="neuro">Нейропсихологічний центр</option>
+                  <option value="other">Інше</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="students-ua">Кількість учнів</label>
+                <select id="students-ua" name="students_count" required>
+                  <option value="" disabled selected>— Оберіть кількість —</option>
+                  <option value="lt50">До 50 учнів</option>
+                  <option value="50to200">50–200 учнів</option>
+                  <option value="gt200">Більше 200 учнів</option>
+                </select>
+              </div>
+            </div>
+
+            <input type="hidden" name="utm_source" id="utm_source">
+            <input type="hidden" name="utm_medium" id="utm_medium">
+            <input type="hidden" name="utm_campaign" id="utm_campaign">
+            <input type="hidden" name="utm_content" id="utm_content">
+            <input type="hidden" name="utm_term" id="utm_term">
+            <input type="hidden" name="fbclid" id="fbclid">
+            <input type="hidden" name="landing_page" id="landing_page">
+            <input type="hidden" name="referrer" id="referrer">
+
+            <button type="submit" class="btn btn-primary">Запросити демо</button>
+            <p class="form-note">
+              Надсилаючи заявку, ви погоджуєтесь із <a href="https://neuro.educatimo.com/privacy-policy?from=consent&token=c9ad9f52-30bd-4c21-b11b-8d9cbdfb986d" target="_blank" rel="noopener noreferrer">Політикою конфіденційності</a> та умовами пілотної програми.
+            </p>
+            <div id="form-message-ua" class="form-message"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <span>SaaS-платформа для освітніх центрів, шкіл і нейропсихологічних центрів.</span>
+      <span>Підписка Neuro Educatimo</span>
+    </div>
+  </main>
+  <script>
+    (() => {
+      const scrollRoot = document.querySelector('[data-report-scroll]');
+      if (scrollRoot) {
+        const scrollPages = Array.from(scrollRoot.querySelectorAll('.report-scroll-page'));
+        const advanceScroll = () => {
+          if (!scrollPages.length) return;
+          const positions = scrollPages.map((page) => page.offsetTop);
+          let index = 0;
+
+          const go = () => {
+            scrollRoot.scrollTo({ top: positions[index] || 0, behavior: 'smooth' });
+            index = (index + 1) % scrollPages.length;
+          };
+
+          go();
+          setInterval(go, 3200);
+        };
+
+        if (document.readyState === 'complete') {
+          requestAnimationFrame(advanceScroll);
+        } else {
+          window.addEventListener('load', () => requestAnimationFrame(advanceScroll), { once: true });
+        }
+      }
+
+    })();
+  </script>
+  <script>
+    (function () {
       var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
       var urlParams = new URLSearchParams(window.location.search);
-      params.forEach(function(param) {
+      params.forEach(function (param) {
         if (urlParams.get(param)) {
           localStorage.setItem(param, urlParams.get(param));
         }
@@ -42,901 +1409,53 @@
         localStorage.setItem('referrer', document.referrer);
       }
     })();
-    </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neuro Educatimo – Майбутнє доказової освіти</title>
-
-    <meta name="description"
-        content="SaaS-платформа для оцифрування та візуалізації когнітивного розвитку дітей. Припиніть продавати обіцянки — почніть демонструвати результати.">
-    <meta property="og:title" content="Neuro Educatimo – Майбутнє доказової освіти">
-    <meta property="og:description"
-        content="SaaS-платформа для оцифрування та візуалізації когнітивного розвитку дітей. Почніть демонструвати результати.">
-    <meta property="og:image" content="https://www.neuro.educatimo.com/img/hero-background.jpeg">
-    <meta property="og:url" content="https://www.neuro.educatimo.com/uk/">
-    <meta property="og:type" content="website">
-    <link rel="canonical" href="https://www.neuro.educatimo.com/uk/" />
-    <link rel="alternate" hreflang="ru" href="https://www.neuro.educatimo.com/ru/" />
-    <link rel="alternate" hreflang="en" href="https://www.neuro.educatimo.com/en/" />
-    <link rel="alternate" hreflang="uk" href="https://www.neuro.educatimo.com/uk/" />
-    <link rel="alternate" hreflang="pl" href="https://www.neuro.educatimo.com/pl/" />
-    <link rel="alternate" hreflang="cs" href="https://www.neuro.educatimo.com/cs/" />
-    <link rel="alternate" hreflang="x-default" href="https://www.neuro.educatimo.com/uk/" />
-    <link rel="stylesheet" href="/style.css">
-
-    <link rel="icon" type="image/png" href="/favicon.png">
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "WebSite",
-          "url": "https://www.neuro.educatimo.com/uk/",
-          "name": "Neuro Educatimo",
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://www.neuro.educatimo.com/search?q={search_term_string}",
-            "query-input": "required name=search_term_string"
-          }
-        },
-        {
-          "@type": "Organization",
-          "name": "Neuro Educatimo",
-          "url": "https://www.neuro.educatimo.com/uk/",
-          "logo": "https://www.neuro.educatimo.com/favicon.png"
-        },
-        {
-          "@type": "FAQPage",
-          "mainEntity": [
-            {
-              "@type": "Question",
-              "name": "Що таке Neuro Educatimo?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Це SaaS-платформа для освітніх центрів, яка оцифровує, візуалізує та аналізує когнітивний розвиток дітей (увага, пам'ять, мислення) на основі стандартизованих тестів, допомагаючи педагогам демонструвати вимірюваний прогрес."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Для кого призначена ця платформа?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Neuro Educatimo ідеально підходить для приватних навчальних центрів, шкіл, гімназій, індивідуальних педагогів та нейропсихологічних центрів, які прагнуть до доказового, науково обґрунтованого підходу в освіті."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Як Neuro Educatimo допомагає демонструвати результати?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Платформа перетворює сирі дані тестування в інтуїтивно зрозумілі графіки та звіти. Ви можете наочно показати батькам динаміку розвитку когнітивних функцій дитини, підтверджуючи ефективність ваших занять об'єктивними даними."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "У чому відмінність від звичайних тестів?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "На відміну від традиційних тестів, які дають лише підсумковий бал, Neuro Educatimo аналізує деталізовані сирі дані (наприклад, час реакції, кількість помилок) і візуалізує їх, пропонуючи персоналізовані рекомендації для розвитку конкретних когнітивних навичок."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Які когнітивні тести використовуються у платформі Neuro Educatimo?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Ми використовуємо 9 стандартизованих та валідизованих методик, включаючи аналоги тестів з батарей WISC, WMS, NEPSY-II та класичних нейропсихологічних методик (наприклад, Таблиці Шульте, Графічний диктант Ельконіна). Тести охоплюють слухову та зорову пам'ять (короткострокову та довгострокову), швидкість уваги, просторове та логічне мислення, а також самооцінку та рефлексію."
-              }
-            }
-          ]
-        }
-      ]
-    }
-    </script>
-
-    <meta name="google-site-verification" content="KrzmliF-nHu1rheg7v32mG0YxD9468OMmXtlGesgtG0" />
-</head>
-
-<body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PXBC78DR"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
-
-    <nav class="navbar">
-        <div class="container">
-            <a href="/uk/" class="navbar-brand">Neuro Educatimo</a>
-            <div class="lang-switcher">
-                <a href="/uk/" class="active">UA</a>
-                <a href="/en/">EN</a>
-                <a href="/pl/">PL</a>
-                <a href="/cs/">CZ</a>
-                <a href="/ru/">RU</a>
-            </div>
-        </div>
-    </nav>
-
-    <section id="hero">
-        <div class="container">
-            <h1>Що таке Neuro.Educatimo?</h1>
-            <p>Інтерактивна система, яка вимірює розвиток когнітивних здібностей дитини і показує її прогрес у зрозумілих графіках та звітах для батьків і педагогів.</p>
-            <a href="#registration" class="btn">Замовити демонстрацію (15 хв)</a>
-        </div>
-    </section>
-
-
-    <section id="cognitive-skills">
-        <div class="container">
-            <div class="section-header">
-                <h2>Дитина проходить 9 фундаментальних тестів.</h2>
-                <p>Вони вимірюють ключові когнітивні навички:</p>
-            </div>
-            <div class="cognitive-cards-grid">
-                <div class="cognitive-card">
-                    <span class="cognitive-emoji">🎯</span>
-                    <p>Увага та концентрація</p>
-                </div>
-                <div class="cognitive-card">
-                    <span class="cognitive-emoji">🧠</span>
-                    <p>Пам'ять</p>
-                </div>
-                <div class="cognitive-card">
-                    <span class="cognitive-emoji">💡</span>
-                    <p>Логічне та абстрактне мислення</p>
-                </div>
-                <div class="cognitive-card">
-                    <span class="cognitive-emoji">⚡</span>
-                    <p>Швидкість обробки інформації</p>
-                </div>
-                <div class="cognitive-card">
-                    <span class="cognitive-emoji">📐</span>
-                    <p><strong>Виконавчі функції:</strong> здатність дитини сприймати команди, планувати дії та контролювати себе (Просторове мислення)</p>
-                </div>
-                <div class="cognitive-card">
-                    <span class="cognitive-emoji">🙂</span>
-                    <p>Самооцінка та рефлексія</p>
-                </div>
-            </div>
-            <p class="cognitive-summary">Система аналізує результати і показує їх у вигляді зрозумілих графіків і звітів, щоб батьки та педагоги могли бачити реальний прогрес розвитку дитини.</p>
-            <div class="section-cta">
-                <a href="#demo" class="btn">Подивитися зразок звіту</a>
-            </div>
-        </div>
-    </section>
-
-    <section id="visualization">
-        <div class="container">
-            <div class="section-header">
-                <h2>Візуалізація даних</h2>
-            </div>
-            <div class="vis-slider-wrap">
-                <div class="vis-track" id="vis-track">
-                    <div class="vis-slide">
-                        <img src="/img/demo/uk-4.png" alt="Графіки адмінки викладача" loading="lazy">
-                    </div>
-                    <div class="vis-slide">
-                        <img src="/img/demo/uk-3.png" alt="Графіки зі звіту про тестування" loading="lazy">
-                    </div>
-                </div>
-                <button class="vis-arrow prev" id="vis-prev" aria-label="Попереднє">&#8249;</button>
-                <button class="vis-arrow next" id="vis-next" aria-label="Наступне">&#8250;</button>
-                <div class="vis-dots" id="vis-dots"></div>
-            </div>
-            <div class="vis-caption-block">
-                <p class="vis-caption-intro">Завдяки цьому батьки та педагоги можуть бачити:</p>
-                <ul class="vis-caption-list">
-                    <li>Як розвивається дитина з часом за ключовими когнітивними навичками.</li>
-                    <li>Які здібності є сильними сторонами дитини.</li>
-                    <li>Які навички потребують додаткового розвитку та уваги.</li>
-                </ul>
-                <p class="vis-caption-note">Це дозволяє говорити про розвиток дитини не на рівні суб'єктивних вражень, а на основі реальних вимірюваних даних.</p>
-            </div>
-        </div>
-    </section>
-
-    <section id="pain-solutions">
-        <div class="container">
-            <div class="section-header">
-                <h2>Як NeuroEducatimo допоможе вашому освітньому закладу?</h2>
-            </div>
-            <div class="pain-grid">
-                <div class="pain-card">
-                    <div class="problem">
-                        <h4>🔴 Відтік клієнтів</h4>
-                        <p>Батьки не бачать миттєвого результату і припиняють платити через 2-3 місяці. Суб'єктивного «ваша дитина молодець» вже недостатньо для подовження абонемента.</p>
-                    </div>
-                    <div class="solution">
-                        <h4>🟢 Рішення</h4>
-                        <p>Ви надаєте їм наочні звіти з реальною динамікою розвитку. Батьки бачать прогрес у цифрах і залишаються з вами на роки.</p>
-                    </div>
-                </div>
-                <div class="pain-card">
-                    <div class="problem">
-                        <h4>🔴 Залежність від педагогів</h4>
-                        <p>Рівень викладання «плаває» від вчителя до вчителя. У вас немає єдиного стандарту контролю якості навчання в різних філіях або групах.</p>
-                    </div>
-                    <div class="solution">
-                        <h4>🟢 Рішення</h4>
-                        <p>Об'єктивний контроль якості викладання. Ви керуєте процесом на основі цифр, а не емоцій чи чиїхось вражень.</p>
-                    </div>
-                </div>
-                <div class="pain-card">
-                    <div class="problem">
-                        <h4>🔴 Втрачений прибуток</h4>
-                        <p>Залучення нового клієнта коштує дорожче, ніж утримання старого. Крім того, ви втрачаєте можливість додаткових продажів всередині школи.</p>
-                    </div>
-                    <div class="solution">
-                        <h4>🟢 Рішення</h4>
-                        <p>Ви отримуєте додатковий дохід від тестування (як окремої платної послуги) або впроваджуєте його у стандарт навчання, що суттєво підвищує цінність вашого освітнього продукту. Плюс, на основі об'єктивних даних ви можете аргументовано пропонувати батькам додаткові курси з розвитку та корекції тих здібностей, які в дитини «просідають».</p>
-                    </div>
-                </div>
-                <div class="pain-card">
-                    <div class="problem">
-                        <h4>🔴 Освітня криза (PISA) та виклики інклюзії</h4>
-                        <p>За даними PISA, рівень засвоєння знань падає. Крім того, стандартні методики часто не працюють, бо не враховують нейрофункціональні особливості сучасних дітей.</p>
-                    </div>
-                    <div class="solution">
-                        <h4>🟢 Рішення</h4>
-                        <p>Платформа показує когнітивні причини неуспішності. Ви отримуєте дані для грамотної інклюзії та персоналізованого підходу, допомагаючи педагогу навчати дитину з огляду на її сильні сторони.</p>
-                    </div>
-                </div>
-                <div class="pain-card">
-                    <div class="problem">
-                        <h4>🔴 Висока конкуренція</h4>
-                        <p>Усі навколо обіцяють абстрактний «розвиток».</p>
-                    </div>
-                    <div class="solution">
-                        <h4>🟢 Рішення</h4>
-                        <p>NeuroEducatimo стає вашим унікальним продуктом та конкурентною перевагою. Ви — єдині, хто доводить результати вимірюваннями.</p>
-                    </div>
-                </div>
-                <div class="pain-card">
-                    <div class="problem">
-                        <h4>🔴 Складно оцінити ефективність нових навчальних програм</h4>
-                        <p>&nbsp;</p>
-                    </div>
-                    <div class="solution">
-                        <h4>🟢 Рішення</h4>
-                        <p>Масштабований моніторинг. Ви чітко бачите на графіках, яка методика працює найкраще для конкретних вікових груп дітей.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="section-cta">
-                <a href="#registration" class="btn">Дізнатися більше</a>
-            </div>
-        </div>
-    </section>
-
-    <section id="how-it-works-new">
-        <div class="container">
-            <div class="section-header">
-                <h2>Як працює NeuroEducatimo?</h2>
-                <p class="steps-subheading">4 прості кроки</p>
-            </div>
-            <div class="steps-row">
-                <div class="step-card">
-                    <span class="step-icon">📝</span>
-                    <h4>Крок 1. Реєстрація</h4>
-                    <p>Імпорт даних учня в систему та налаштування профілю.</p>
-                </div>
-                <div class="step-arrow">→</div>
-                <div class="step-card">
-                    <span class="step-icon">🎮</span>
-                    <h4>Крок 2. Ігровий квест</h4>
-                    <p>Дитина проходить захопливе тестування на планшеті без стресу.</p>
-                </div>
-                <div class="step-arrow">→</div>
-                <div class="step-card">
-                    <span class="step-icon">📊</span>
-                    <h4>Крок 3. Отримання даних</h4>
-                    <p>Система миттєво формує детальний звіт для школи.</p>
-                </div>
-                <div class="step-arrow">→</div>
-                <div class="step-card">
-                    <span class="step-icon">🤝</span>
-                    <h4>Крок 4. Робота з батьками</h4>
-                    <p>Ви демонструєте батькам об'єктивні результати та динаміку.</p>
-                </div>
-            </div>
-            <div class="section-cta">
-                <a href="#registration" class="btn">Спробувати безкоштовно</a>
-            </div>
-        </div>
-    </section>
-
-    <section id="results-summary">
-        <div class="container">
-            <div class="section-header">
-                <h2>У підсумку ви отримуєте</h2>
-            </div>
-            <div class="results-grid">
-                <div class="result-card">
-                    <span class="result-icon">📈</span>
-                    <h3>Моніторинг розвитку</h3>
-                    <p>Відстежуйте когнітивний прогрес кожної дитини та групи протягом усього навчання. Порівнюйте результати «до» і «після» та бачте реальний вплив ваших методик.</p>
-                </div>
-                <div class="result-card">
-                    <span class="result-icon">✅</span>
-                    <h3>Контроль якості педагогів</h3>
-                    <p>Оцінюйте ефективність кожного викладача та методик за єдиним об'єктивним алгоритмом. Жодних суб'єктивних звітів — лише дані.</p>
-                </div>
-            </div>
-            <div class="section-cta">
-                <a href="#registration" class="btn">Замовити презентацію</a>
-            </div>
-        </div>
-    </section>
-
-    <section id="how-it-works">
-        <div class="container">
-            <div class="section-header">
-                <h2>Перегляньте Neuro Educatimo у дії</h2>
-                <p>Перегляньте коротке відео, щоб дізнатися, як наша платформа допомагає оцифровувати та візуалізувати
-                    когнітивний прогрес дітей, роблячи процес навчання прозорим та ефективним.</p>
-            </div>
-
-            <div class="video-wrapper">
-                <iframe src="https://www.youtube.com/embed/_3D2ZLm1xFc" title="Neuro Educatimo Demo Video (Ukrainian)"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen></iframe>
-            </div>
-
-            <div class="video-description">
-                <p>У цьому відео ви побачите:</p>
-                <ul>
-                    <li>Як легко додавати дані про прогрес.</li>
-                    <li>Наочні графіки розвитку уваги та пам'яті.</li>
-                    <li>Приклади персоналізованих рекомендацій для учнів.</li>
-                </ul>
-            </div>
-
-            <div class="video-transcript">
-                <h3 class="transcript-toggle" onclick="toggleTranscript()">Транскрипція відео (текстова версія)</h3>
-                <div class="transcript-content" id="transcript-content">
-                    <p>Чому батьки йдуть навіть з хороших центрів? Тому що слів: "Ваша дитина молодець" вже недостатньо.
-                    </p>
-                    <p>Батьки хочуть бачити результат, за який платять. Neuro Educatimo — перша SaaS-платформа доказової
-                        діагностики когнітивних функцій.</p>
-                    <p>Зробіть прогрес дитини видимим і зрозумілим. Все просто. Педагог реєструє учня, і дитина
-                        проходить захоплююче тестування на планшеті.</p>
-                    <p>Без стресу і нудних іспитів, під керуванням фахівця вашої організації. Результати тестування
-                        відправляються на сервер.</p>
-                    <p>Система миттєво аналізує параметри мозку і будує точний когнітивний профіль учня. Ви бачите не
-                        просто зріз, а динаміку.</p>
-                    <p>Реальний прогрес за три місяці або рік. Це доказ ефективності ваших занять. Наші партнери можуть
-                        бачити всі проведені сесії тестування своїх учнів, компонувати їх у групи за напрямками навчання
-                        або віком, додавати і редагувати фахівців своєї організації, які займаються проведенням і
-                        аналізом тестів.</p>
-                    <p>Завантажуйте професійні звіти з вашим логотипом, реквізитами та описом саме ваших методик. Це
-                        працює на авторитет вашого бренду.</p>
-                    <p>Проводьте діагностику як платну послугу. Збільшуйте LTV клієнта і довіру батьків, спираючись на
-                        тверді дані.</p>
-                    <p>Neuro Educatimo: результат, який можна виміряти. Реєструйтеся і отримайте 7 днів безкоштовного
-                        доступу.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="demo">
-        <div class="container">
-            <div class="section-header">
-                <h2>Ось такий об'єктивний звіт отримають ваші батьки</h2>
-                <p class="demo-sub">Що отримує ваш центр і ваші батьки</p>
-                <p>Звіт з когнітивним профілем дитини — під брендом вашої школи. Кабінет педагога з динамікою розвитку кожного учня.</p>
-            </div>
-
-            <div class="demo-slider-wrap">
-                <div class="demo-slider-track">
-                    <div class="demo-slides">
-                        <div class="demo-slide demo-slide--img">
-                            <img src="/img/demo/uk-1.png" alt="Звіт: результати тестування когнітивних функцій" loading="lazy">
-                        </div>
-                        <div class="demo-slide demo-slide--img">
-                            <img src="/img/demo/uk-2.png" alt="Звіт: рекомендації для розвитку дитини" loading="lazy">
-                        </div>
-                        <div class="demo-slide demo-slide--img">
-                            <img src="/img/demo/uk-3.png" alt="Звіт: когнітивна карта та динаміка розвитку" loading="lazy">
-                        </div>
-                        <div class="demo-slide demo-slide--img">
-                            <img src="/img/demo/uk-4.png" alt="Адмінпанель: статистика учня" loading="lazy">
-                            <div class="demo-slide-caption">🇺🇦 Так виглядає кабінет педагога зсередини</div>
-                        </div>
-                    </div>
-                </div>
-                <button class="demo-arrow prev" aria-label="Попередній">&#8249;</button>
-                <button class="demo-arrow next" aria-label="Наступний">&#8250;</button>
-                <div class="demo-dots"></div>
-            </div>
-
-            <div class="demo-features">
-                <ul>
-                    <li><b>Ігровий формат:</b> Захопливий квест замість нудного іспиту.</li>
-                    <li><b>Всього 30 хвилин:</b> Глибокий нейропсихологічний зріз без втрати навчального часу.</li>
-                    <li><b>Масштабованість:</b> Тестуйте індивідуально, цілими групами або онлайн.</li>
-                    <li><b>Динаміка:</b> Система показує трек розвитку, а не просто оцінку.</li>
-                </ul>
-            </div>
-
-            <div class="demo-cta">
-                <a href="#registration" class="btn">Отримати 7 днів безкоштовно →</a>
-            </div>
-        </div>
-    </section>
-
-    <section id="features">
-        <div class="container">
-            <div class="section-header">
-                <h2>Можливості, які змінюють підхід до навчання</h2>
-                <p>Neuro Educatimo пропонує комплекс інструментів для всебічного аналізу та підтримки когнітивного
-                    розвитку кожної дитини.</p>
-            </div>
-
-            <div class="features-grid">
-                <div class="feature-item">
-                    <div class="icon"><i class="fas fa-mobile-alt"></i></div>
-                    <h3>«Методист у кишені»</h3>
-                    <p>Економія ресурсу. Один інструмент замінює штат діагностів. 10 років досвіду методистів упаковані в алгоритм: Система аналізує параметри мозку швидше і точніше, ніж живий експерт.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="icon"><i class="fas fa-chart-line"></i></div>
-                    <h3>Утримання клієнтів (LTV)</h3>
-                    <p>Батьки, які бачать цифри зростання, не забирають дитину зі школи. Ви продовжуєте життя клієнта на роки, показуючи йому незаперечні графіки прогресу, а не просто слова.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="icon"><i class="fas fa-sliders-h"></i></div>
-                    <h3>Управління якістю</h3>
-                    <p>Корекція «на льоту». Бачите просідання групи? Підбираєте методику. Система дозволяє виявляти «слабкі ланки» в навчанні та педагогах на основі об'єктивних даних.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="icon"><i class="fas fa-award"></i></div>
-                    <h3>Статус Експерта</h3>
-                    <p>Станьте першим Доказовим Центром у місті. Продавайте преміальний продукт батькам, які інвестують у майбутнє дітей. Це аргумент, проти якого у конкурентів немає відповіді.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="icon"><i class="fas fa-coins"></i></div>
-                    <h3>Нове джерело прибутку</h3>
-                    <p>Зробіть тестування окремою платною послугою. Вхідна діагностика нових учнів, регулярні чекапи або послуги для літніх таборів — це додатковий дохід, який окупає підписку на платформу вже з перших клієнтів.</p>
-                </div>
-                <div class="feature-item">
-                    <div class="icon"><i class="fas fa-puzzle-piece"></i></div>
-                    <h3>Грамотна інклюзія</h3>
-                    <p>Знайдіть ключ до «складних» дітей. Коли стандартні методики не працюють, платформа показує справжню когнітивну причину неуспішності. Ви отримуєте базу для побудови персоналізованого маршруту навчання для кожного учня.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="audience">
-        <div class="container">
-            <div class="section-header">
-                <h2>Для кого створено Neuro Educatimo?</h2>
-                <p>Наша платформа — ідеальний інструмент для тих, хто прагне інновацій та доказової бази в освіті.</p>
-            </div>
-
-            <div class="audience-grid">
-                <div class="audience-item">
-                    <div class="icon"><i class="fas fa-building"></i></div>
-                    <h3>Приватні навчальні центри</h3>
-                    <p>Залучайте більше клієнтів, демонструючи вимірювані результати розвитку їхніх дітей. Зміцніть свій
-                        бренд як центр, що використовує передові, науково обґрунтовані методи.</p>
-                </div>
-                <div class="audience-item">
-                    <div class="icon"><i class="fas fa-school"></i></div>
-                    <h3>Школи та гімназії</h3>
-                    <p>Інтегруйте глибокий аналіз когнітивних функцій у навчальний процес. Допомагайте учням розкривати
-                        свій потенціал і підвищуйте академічну успішність усієї установи.</p>
-                </div>
-                <div class="audience-item">
-                    <div class="icon"><i class="fas fa-user-graduate"></i></div>
-                    <h3>Індивідуальні педагоги та тьютори</h3>
-                    <p>Отримайте потужний інструмент для персоналізації навчання. Створюйте індивідуальні програми
-                        розвитку, спираючись на точні дані про кожного учня.</p>
-                </div>
-                <div class="audience-item">
-                    <div class="icon"><i class="fas fa-brain"></i></div>
-                    <h3>Нейропсихологічні центри</h3>
-                    <p>Поглибте свою діагностику та відстеження терапії. Візуалізуйте зміни в когнітивних функціях,
-                        підтверджуючи ефективність вашої роботи.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-
-    <section id="scientific-foundation">
-        <div class="container">
-            <div class="sci-foundation-grid">
-                <div class="sci-foundation-image">
-                    <img src="/img/scientists.png" alt="Наукова основа платформи Neuro.Educatimo" loading="lazy">
-                </div>
-                <div class="sci-foundation-text">
-                    <h2>На яких методичних підходах базується платформа?</h2>
-                    <p>Наша платформа не використовує випадкові вправи або «вигадані з нуля» завдання. Вона побудована на основі перевірених часом підходів, які десятиліттями застосовуються у нейропсихології, дитячій психології та педагогічній діагностиці. Ми використовуємо власні цифрові завдання, спеціально адаптовані для онлайн-формату та різних вікових груп, але їхня діагностична логіка спирається на класичні підходи до оцінки пам'яті, уваги, мислення, саморегуляції та самооцінки дітей. Під час розробки ми орієнтувалися на міжнародно відомі напрями оцінки, представлені, зокрема, у підходах David Wechsler, A. R. Luria, Marit Korkman, Ursula Kirk, Sally Kemp, Walter Schulte та D. B. Elkonin.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="about-us-reviews">
-        <div class="container">
-            <div class="section-header">
-                <h2>Наша експертиза та відгуки клієнтів</h2>
-                <p>Neuro Educatimo створено командою експертів у сфері когнітивної психології та IT. Ми дбаємо про
-                    доказовість та ефективність.</p>
-            </div>
-
-            <div class="about-us-block">
-                <h3>Створено практиками для практиків</h3>
-                <p>За цим продуктом стоїть 10 років управління мережею освітніх центрів та тисячі випускників. Ми не IT-стартап, який вирішив «пограти в школу». Ми створили Neuro.Educatimo, тому що на ринку не було інструменту, здатного виміряти ККД мозку дитини та відстежувати динаміку його змін. Ми оцифрували класичні батареї нейропсихологічних тестів і навчили систему бачити те, що пропускає око педагога. Це стандарт, перевірений на реальних дітях.</p>
-                <a href="team" class="btn secondary-btn">Дізнатися більше про команду</a>
-            </div>
-
-            <div class="reviews-slider-wrapper">
-                <h3>Що говорять наші партнери?</h3>
-                <div class="reviews-slider">
-                    <div class="reviews-track" id="reviews-track">
-                        <div class="review-slide">
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
-                                    class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </div>
-                            <p class="review-text">«Платформа стала нашою ключовою перевагою. Батьки більше не питають
-                                'чому так дорого?', вони бачать графіки прогресу і самі продовжують абонементи.»</p>
-                            <p class="review-author">— Анна С., Директор центру "Розвиток"</p>
-                        </div>
-                        <div class="review-slide">
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
-                                    class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
-                            </div>
-                            <p class="review-text">«Нам, як нейропсихологам, важливо мати точні дані. Neuro Educatimo
-                                дає деталізовані сирі метрики, які незамінні для тонкого налаштування терапії.»</p>
-                            <p class="review-author">— Олег Р., Провідний спеціаліст</p>
-                        </div>
-                        <div class="review-slide">
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
-                                    class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </div>
-                            <p class="review-text">«Neuro.Educatimo дав нам цифри. Тепер це окремий платний продукт, який утримує батьків краще за будь-яку рекламу.»</p>
-                            <p class="review-author">— Ірина, власниця мережі центрів (досвід 10+ років)</p>
-                        </div>
-                        <div class="review-slide">
-                            <div class="review-rating">
-                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i
-                                    class="fas fa-star"></i><i class="fas fa-star"></i>
-                            </div>
-                            <p class="review-text">«Це система доказового результату розвитку дітей: ми перетворили
-                                обіцянки навчити дитину на вимірювані дані, зрозумілі і нам, як школі, і батькам.»</p>
-                            <p class="review-author">— Марина</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="slider-nav">
-                    <button type="button" id="reviews-prev" aria-label="Попередній відгук"><i
-                            class="fas fa-chevron-left"></i></button>
-                    <button type="button" id="reviews-next" aria-label="Наступний відгук"><i
-                            class="fas fa-chevron-right"></i></button>
-                </div>
-                <div class="slider-dots" id="reviews-dots"></div>
-            </div>
-        </div>
-    </section>
-    <section id="faq" class="faq-section">
-        <div class="container">
-            <div class="section-header">
-                <h2>Поширені запитання</h2>
-                <p>Отримайте швидкі відповіді на найпоширеніші запитання про платформу Neuro Educatimo.</p>
-            </div>
-
-            <div class="faq-list">
-                <div class="faq-item">
-                    <h3 class="faq-question">Чи потрібно наймати нейропсихолога? <i class="fas fa-chevron-down faq-icon"></i></h3>
-                    <div class="faq-answer">
-                        <div class="faq-answer-content">
-                            <p>Ні. Платформа побудована так, щоб педагог або адміністратор центру міг проводити тестування та інтерпретувати результати за підказками системи. Алгоритми базуються на класичних нейропсихологічних батареях і дають зрозумілі рекомендації. Нейропсихолог потрібен лише для складних клінічних випадків.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">Що таке Neuro Educatimo? <i class="fas fa-chevron-down faq-icon"></i></h3>
-                    <div class="faq-answer">
-                        <div class="faq-answer-content">
-                            <p>Це SaaS-платформа для освітніх центрів, яка оцифровує, візуалізує та аналізує когнітивний
-                                розвиток дітей (увага, пам'ять, мислення) на основі стандартизованих тестів, допомагаючи
-                                педагогам демонструвати вимірюваний прогрес.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">Для кого призначена ця платформа? <i
-                            class="fas fa-chevron-down faq-icon"></i></h3>
-                    <div class="faq-answer">
-                        <div class="faq-answer-content">
-                            <p>Neuro Educatimo ідеально підходить для приватних навчальних центрів, шкіл, гімназій,
-                                індивідуальних педагогів та нейропсихологічних центрів, які прагнуть до доказового,
-                                науково обґрунтованого підходу в освіті.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">Як Neuro Educatimo допомагає демонструвати результати? <i
-                            class="fas fa-chevron-down faq-icon"></i></h3>
-                    <div class="faq-answer">
-                        <div class="faq-answer-content">
-                            <p>Платформа перетворює сирі дані тестування в інтуїтивно зрозумілі графіки та звіти. Ви
-                                можете наочно показати батькам динаміку розвитку когнітивних функцій дитини,
-                                підтверджуючи ефективність ваших занять об'єктивними даними.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">У чому відмінність від звичайних тестів? <i
-                            class="fas fa-chevron-down faq-icon"></i></h3>
-                    <div class="faq-answer">
-                        <div class="faq-answer-content">
-                            <p>На відміну від традиційних тестів, які дають лише підсумковий бал, Neuro Educatimo
-                                аналізує деталізовані сирі дані (наприклад, час реакції, кількість помилок) і візуалізує
-                                їх, пропонуючи персоналізовані рекомендації для розвитку конкретних когнітивних навичок.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">Які когнітивні тести використовуються у платформі? <i
-                            class="fas fa-chevron-down faq-icon"></i></h3>
-                    <div class="faq-answer">
-                        <div class="faq-answer-content">
-                            <p>Платформа призначена для освітнього моніторингу когнітивних навичок і не є медичним або клінічним діагностичним інструментом.</p>
-                            <p><strong>Слухова вербальна пам'ять</strong><br>Завдання цього блоку оцінюють, як дитина сприймає словесну інформацію на слух, утримує її в короткочасній пам'яті та відтворює одразу після пред'явлення. За своїм діагностичним принципом цей формат близький до класичних підходів оцінки слухомовленнєвої пам'яті, що застосовуються у шкалах пам'яті Wechsler та в нейропсихологічній традиції Лурії.</p>
-                            <p><strong>Зорово-вербальна пам'ять</strong><br>Цей блок оцінює здатність дитини запам'ятовувати зорові образи та пов'язувати їх зі словами. Такі завдання пов'язані з базовими механізмами навчання — впізнаванням, асоціацією та швидким формуванням нових зв'язків. За логікою оцінки цей тип завдань близький до домену Memory and Learning у батареї NEPSY-II, де є підзавдання на запам'ятовування образів, імен і списків.</p>
-                            <p><strong>Довгострокова слухова пам'ять</strong><br>Після паузи дитина має пригадати словесний матеріал, який був поданий раніше. Це дозволяє оцінити не лише миттєве запам'ятовування, а й міцність збереження інформації в пам'яті. Такий принцип відстроченого відтворення є класичним для нейропсихологічної оцінки пам'яті.</p>
-                            <p><strong>Довгострокова зорова пам'ять</strong><br>У цьому блоці перевіряється, наскільки добре дитина зберігає та впізнає візуальні образи через певний час. Це важливо для навчання, читання, орієнтації в символах, формах і візуальних шаблонах. За діагностичною логікою блок близький до візуальних завдань домену Memory and Learning у NEPSY-II.</p>
-                            <p><strong>Таблиці Шульте</strong><br>У платформі використовується цифрова адаптація таблиць Шульте для різних вікових груп — 3×3, 4×4, 5×5 та 6×6. Методика традиційно пов'язується з німецьким психіатром Вальтером Шульте і використовується для оцінки швидкості зорового пошуку, концентрації та стійкості уваги.</p>
-                            <p><strong>Числові послідовності</strong><br>Авторські завдання на числові закономірності оцінюють здатність дитини помічати правило, утримувати його в робочій пам'яті та логічно продовжувати ряд. Такі завдання пов'язані з оцінкою індуктивного мислення, робочої пам'яті та здатності до математичного міркування — когнітивних доменів, які також відображені у шкалах Wechsler.</p>
-                            <p><strong>Графічний диктант</strong><br>Завдання цього типу спираються на класичні підходи до оцінки просторового мислення, слухомоторної координації, довільної регуляції та вміння діяти за інструкцією. У педагогічній психології та діагностиці готовності до школи цей напрям традиційно пов'язують з працями D. B. Elkonin.</p>
-                            <p><strong>Логічні задачі</strong><br>Блок логічних задач оцінює причинно-наслідкове мислення, здатність помічати зв'язки, робити висновки та узагальнювати. Це один із базових компонентів когнітивної зрілості, який широко представлений у класичних підходах до оцінки інтелекту та навчальної готовності.</p>
-                            <p><strong>Самооцінка та рефлексія</strong><br>Цей блок допомагає побачити, як дитина сприймає себе, свої можливості та своє місце серед інших. За теоретичною основою такі завдання близькі до класичних уявлень про формування «Я-образу» у взаємодії з іншими, зокрема до ідей Charles Horton Cooley та George Herbert Mead про соціальне походження самооцінки.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <section id="articles-preview">
-        <div class="container">
-            <div class="section-header">
-                <h2>Корисні матеріали</h2>
-                <p>Читайте наші статті про когнітивний розвиток, методики навчання та нейропсихологію.</p>
-            </div>
-            <div style="text-align: center; margin-top: 30px;">
-                <a href="/blog?language=uk" class="btn">Перейти до Блогу</a>
-            </div>
-        </div>
-    </section>
-
-    <section id="registration">
-        <div class="container">
-            <div class="section-header">
-                <h2>Майбутнє освіти починається тут</h2>
-                <p>Станьте одним із перших, хто отримає доступ до Neuro Educatimo. Приєднуйтесь до пілотної програми,
-                    щоб протестувати платформу безкоштовно та допомогти сформувати її розвиток.</p>
-            </div>
-
-            <div class="registration-form">
-                <form action="/api/register" method="POST" id="waitlist-form-ua" data-lang="uk">
-                    <input type="hidden" name="source" value="landing_form">
-
-                    <label for="org-name-ua">Назва організації</label>
-                    <input type="text" id="org-name-ua" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
-
-                    <label for="email-ua">Email</label>
-                    <input type="email" id="email-ua" name="email" placeholder="email@example.com" required>
-
-                    <label for="phone-ua">Телефон</label>
-                    <input type="tel" id="phone-ua" name="phone" placeholder="+380 XX XXX XX XX" required>
-
-                    <label for="org-type-ua">Тип закладу</label>
-                    <select id="org-type-ua" name="org_type" required>
-                        <option value="" disabled selected>— Оберіть тип —</option>
-                        <option value="center">Навчальний центр</option>
-                        <option value="school">Школа або гімназія</option>
-                        <option value="neuro">Нейропсихологічний центр</option>
-                        <option value="other">Інше</option>
-                    </select>
-
-                    <label for="students-ua">Кількість учнів</label>
-                    <select id="students-ua" name="students_count" required>
-                        <option value="" disabled selected>— Оберіть кількість —</option>
-                        <option value="lt50">До 50 учнів</option>
-                        <option value="50to200">50–200 учнів</option>
-                        <option value="gt200">Більше 200 учнів</option>
-                    </select>
-
-                    <!-- UTM Hidden Fields -->
-                    <input type="hidden" name="utm_source" id="utm_source">
-                    <input type="hidden" name="utm_medium" id="utm_medium">
-                    <input type="hidden" name="utm_campaign" id="utm_campaign">
-                    <input type="hidden" name="utm_content" id="utm_content">
-                    <input type="hidden" name="utm_term" id="utm_term">
-                    <input type="hidden" name="fbclid" id="fbclid">
-                    <input type="hidden" name="landing_page" id="landing_page">
-                    <input type="hidden" name="referrer" id="referrer">
-                    <button type="submit" class="btn">Замовити демонстрацію (15 хв)</button>
-                    <p class="small-text">Надсилаючи заявку, ви погоджуєтесь з умовами участі в пілотній програмі. Участь безкоштовна і не накладає жодних зобов'язань.</p>
-                    <div id="form-message-ua" style="margin-top: 15px;"></div>
-                </form>
-            </div>
-        </div>
-    </section>
-
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 Neuro Educatimo. Всі права захищені.</p>
-            <p><a href="https://neuro.educatimo.com/privacy-policy?from=consent&token=c9ad9f52-30bd-4c21-b11b-8d9cbdfb986d"
-                    target="_blank" rel="noopener noreferrer">Політика конфіденційності</a></p>
-            <p class="footer-disclaimer">*Платформа призначена для педагогічного моніторингу когнітивних функцій. Результати не є медичним діагнозом і не замінюють консультацію клінічного нейропсихолога.</p>
-        </div>
-    </footer>
-
-    <script src="/js/demo-slider.js"></script>
-    <script src="/js/lang-form.js"></script>
-    <script>
-        (function () {
-            var track = document.getElementById('vis-track');
-            var prevBtn = document.getElementById('vis-prev');
-            var nextBtn = document.getElementById('vis-next');
-            var dotsContainer = document.getElementById('vis-dots');
-            if (!track) return;
-            var slides = track.querySelectorAll('.vis-slide');
-            var total = slides.length;
-            var current = 0;
-            for (var i = 0; i < total; i++) {
-                var dot = document.createElement('span');
-                (function (idx) { dot.addEventListener('click', function () { goTo(idx); }); })(i);
-                dotsContainer.appendChild(dot);
-            }
-            function goTo(n) {
-                current = (n + total) % total;
-                track.style.transform = 'translateX(-' + current * 100 + '%)';
-                dotsContainer.querySelectorAll('span').forEach(function (d, i) {
-                    d.classList.toggle('active', i === current);
-                });
-            }
-            prevBtn.addEventListener('click', function () { goTo(current - 1); });
-            nextBtn.addEventListener('click', function () { goTo(current + 1); });
-            goTo(0);
-        })();
-    </script>
-    <script>
-        // Змінено ID форми та повідомлення для уникнення конфліктів
-        var form = document.getElementById("waitlist-form-ua");
-
-        async function handleSubmit(event) {
-            event.preventDefault();
-
-            var messageDiv = document.getElementById("form-message-ua");
-            var button = form.querySelector("button");
-            var data = new FormData(event.target);
-
-            // Показываем пользователю, что идет загрузка
-            button.disabled = true;
-            button.innerText = "Відправлення...";
-            messageDiv.innerText = "";
-
-            try {
-                const response = await fetch(event.target.action, {
-                    method: form.method,
-                    body: data,
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    form.reset();
-                    button.style.display = 'none';
-                    messageDiv.innerText = "Дякуємо! Ми отримали вашу заявку. Протягом кількох годин на вашу пошту надійде лист із доступом до платформи.";
-                    messageDiv.style.color = "var(--accent-color)";
-                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
-                } else {
-                    throw new Error('Network response was not ok.');
-                }
-            } catch (error) {
-                messageDiv.innerText = "Виникла помилка. Спробуйте ще раз.";
-                messageDiv.style.color = "red";
-                button.disabled = false;
-                button.innerText = "Замовити демонстрацію (15 хв)";
-            }
-        }
-
-        // Вешаем обработчик на событие "submit"
-        form.addEventListener("submit", handleSubmit);
-
-        // Функція для перемикання видимості транскрипції
-        function toggleTranscript() {
-            var content = document.getElementById("transcript-content");
-            var toggleButton = document.querySelector(".transcript-toggle");
-            if (content.style.maxHeight) {
-                content.style.maxHeight = null;
-                toggleButton.innerText = "Транскрипція відео (текстова версія)";
-            } else {
-                content.style.maxHeight = content.scrollHeight + "px";
-                toggleButton.innerText = "Приховати транскрипцію";
-            }
-        }
-
-        // Функціонал аккордеона для FAQ
-        document.addEventListener("DOMContentLoaded", function () {
-            var faqQuestions = document.querySelectorAll('.faq-question');
-
-            faqQuestions.forEach(question => {
-                question.addEventListener('click', function () {
-                    var faqItem = this.closest('.faq-item');
-                    var answer = faqItem.querySelector('.faq-answer');
-
-                    if (this.classList.contains('active')) {
-                        this.classList.remove('active');
-                        answer.style.maxHeight = null;
-                    } else {
-                        faqQuestions.forEach(q => {
-                            q.classList.remove('active');
-                            q.nextElementSibling.style.maxHeight = null;
-                        });
-
-                        this.classList.add('active');
-                        answer.style.maxHeight = answer.querySelector('.faq-answer-content').scrollHeight + "px";
-                    }
-                });
-            });
-
-            // Слайдер відгуків
-            var track = document.getElementById('reviews-track');
-            var prevBtn = document.getElementById('reviews-prev');
-            var nextBtn = document.getElementById('reviews-next');
-            var dotsContainer = document.getElementById('reviews-dots');
-            if (track && prevBtn && nextBtn) {
-                var slides = track.querySelectorAll('.review-slide');
-                var total = slides.length;
-                var current = 0;
-                function goTo(n) {
-                    current = (n + total) % total;
-                    track.style.transform = 'translateX(-' + current * 100 + '%)';
-                    prevBtn.disabled = current === 0;
-                    nextBtn.disabled = current === total - 1;
-                    var dots = dotsContainer.querySelectorAll('span');
-                    dots.forEach(function (d, i) { d.classList.toggle('active', i === current); });
-                }
-                for (var i = 0; i < total; i++) {
-                    var dot = document.createElement('span');
-                    dot.setAttribute('aria-label', 'Відгук ' + (i + 1));
-                    dot.addEventListener('click', function () { goTo(Array.from(dotsContainer.children).indexOf(this)); });
-                    dotsContainer.appendChild(dot);
-                }
-                prevBtn.addEventListener('click', function () { goTo(current - 1); });
-                nextBtn.addEventListener('click', function () { goTo(current + 1); });
-                goTo(0);
-            }
-        });
-
-    </script>
-
-    <!-- UTM Form Filler Script -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
       var utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer'];
-      utmFields.forEach(function(field) {
+      utmFields.forEach(function (field) {
         var el = document.getElementById(field);
         if (el) {
           el.value = localStorage.getItem(field) || '';
         }
       });
-    });
-    </script>
-</body>
 
+      var form = document.getElementById('waitlist-form-ua');
+      if (!form) return;
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var button = form.querySelector('button[type="submit"]');
+        var messageDiv = document.getElementById('form-message-ua');
+        var data = new FormData(form);
+
+        button.disabled = true;
+        button.innerText = 'Відправлення...';
+        messageDiv.textContent = '';
+
+        fetch(form.action, {
+          method: form.method,
+          body: data,
+          headers: {
+            'Accept': 'application/json'
+          }
+        }).then(function (response) {
+          if (!response.ok) {
+            throw new Error('Network response was not ok.');
+          }
+          return response.json();
+        }).then(function () {
+          form.reset();
+          button.style.display = 'none';
+          messageDiv.innerHTML = ‘<span style="color:#22c55e;font-weight:700;">Дякуємо! Ми отримали вашу заявку. Очікуйте листа з посиланням для запису на демо.</span>’;
+          try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
+        }).catch(function () {
+          messageDiv.innerHTML = '<span style="color:#ef4444;font-weight:700;">Виникла помилка. Спробуйте ще раз.</span>';
+          button.disabled = false;
+          button.innerText = 'Запросити демо';
+        });
+      });
+    });
+  </script>
+</body>
 </html>
