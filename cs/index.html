@@ -731,6 +731,7 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-cz" data-lang="cs">
                     <input type="hidden" name="source" value="landing_form">
+                    <input type="hidden" name="lang" value="cs">
 
                     <label for="org-name-cz">Název organizace</label>
                     <input type="text" id="org-name-cz" name="org_name" placeholder="Vzdělávací centrum «Slunečko»" required>
@@ -740,6 +741,7 @@
 
                     <label for="phone-cz">Telefon</label>
                     <input type="tel" id="phone-cz" name="phone" placeholder="+420 XXX XXX XXX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Zadejte číslo propojené s Telegramem — napíšeme vám tam.</p>
 
                     <label for="org-type-cz">Typ instituce</label>
                     <select id="org-type-cz" name="org_type" required>
@@ -842,7 +844,7 @@
                     // Úspěch!
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Děkujeme! Přijali jsme vaši žádost. Během několika hodin obdržíte email s přístupem k platformě.";
+                    messageDiv.innerText = "Děkujeme! Obdrželi jsme váš požadavek. Očekávejte e-mail s odkazem pro rezervaci dema.";
                     messageDiv.style.color = "var(--accent-color)";
                     try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {

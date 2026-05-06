@@ -733,6 +733,7 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-en" data-lang="en">
                     <input type="hidden" name="source" value="landing_form">
+                    <input type="hidden" name="lang" value="en">
 
                     <label for="org-name-en">Organization name</label>
                     <input type="text" id="org-name-en" name="org_name" placeholder="Learning Center «Bright Minds»" required>
@@ -742,6 +743,7 @@
 
                     <label for="phone-en">Phone</label>
                     <input type="tel" id="phone-en" name="phone" placeholder="+1 XXX XXX XXXX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Enter the number linked to Telegram — we'll message you there.</p>
 
                     <label for="org-type-en">Type of institution</label>
                     <select id="org-type-en" name="org_type" required>
@@ -844,7 +846,7 @@
                 if (response.ok) {
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Thank you! We've received your application. Within a few hours you'll get an email with access to the platform.";
+                    messageDiv.innerText = "Thank you! We received your request. Expect an email with a demo booking link.";
                     messageDiv.style.color = "var(--accent-color)";
                     try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {

@@ -734,6 +734,7 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-pl" data-lang="pl">
                     <input type="hidden" name="source" value="landing_form">
+                    <input type="hidden" name="lang" value="pl">
 
                     <label for="org-name-pl">Nazwa organizacji</label>
                     <input type="text" id="org-name-pl" name="org_name" placeholder="Centrum Edukacji «Promyk»" required>
@@ -743,6 +744,7 @@
 
                     <label for="phone-pl">Telefon</label>
                     <input type="tel" id="phone-pl" name="phone" placeholder="+48 XXX XXX XXX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Podaj numer powiązany z Telegramem — napiszemy do Ciebie tam.</p>
 
                     <label for="org-type-pl">Typ placówki</label>
                     <select id="org-type-pl" name="org_type" required>
@@ -845,7 +847,7 @@
                     // Sukces!
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Dziękujemy! Otrzymaliśmy Twoje zgłoszenie. W ciągu kilku godzin otrzymasz email z dostępem do platformy.";
+                    messageDiv.innerText = "Dziękujemy! Otrzymaliśmy Twoją prośbę. Oczekuj e-maila z linkiem do zapisu na demo.";
                     messageDiv.style.color = "var(--accent-color)";
                     try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {

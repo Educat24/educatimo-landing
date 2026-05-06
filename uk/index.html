@@ -730,6 +730,7 @@
             <div class="registration-form">
                 <form action="/api/register" method="POST" id="waitlist-form-ua" data-lang="uk">
                     <input type="hidden" name="source" value="landing_form">
+                    <input type="hidden" name="lang" value="uk">
 
                     <label for="org-name-ua">Назва організації</label>
                     <input type="text" id="org-name-ua" name="org_name" placeholder="Центр розвитку «Сонечко»" required>
@@ -739,6 +740,7 @@
 
                     <label for="phone-ua">Телефон</label>
                     <input type="tel" id="phone-ua" name="phone" placeholder="+380 XX XXX XX XX" required>
+                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Вкажіть номер, прив'язаний до Telegram — ми напишемо вам там.</p>
 
                     <label for="org-type-ua">Тип закладу</label>
                     <select id="org-type-ua" name="org_type" required>
@@ -840,7 +842,7 @@
                 if (response.ok) {
                     form.reset();
                     button.style.display = 'none';
-                    messageDiv.innerText = "Дякуємо! Ми отримали вашу заявку. Протягом кількох годин на вашу пошту надійде лист із доступом до платформи.";
+                    messageDiv.innerText = "Дякуємо! Ми отримали вашу заявку. Очікуйте листа з посиланням для запису на демо.";
                     messageDiv.style.color = "var(--accent-color)";
                     try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
                 } else {
