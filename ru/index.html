@@ -893,6 +893,11 @@
                 document.body.style.overflow = '';
                 fetch('/api/send-lead-email', { method:'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ email:_ru_leadEmail, center_name:_ru_leadName, lang:'ru', booked:true }) }).catch(function(){});
+                var eventUri = e.data && e.data.payload && e.data.payload.event && e.data.payload.event.uri;
+                if (eventUri && _ru_leadEmail) {
+                    fetch('/api/store-calendly-event', { method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ email:_ru_leadEmail, event_uri:eventUri }) }).catch(function(){});
+                }
                 _showTgStepRu(true);
             }
         });

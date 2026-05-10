@@ -214,6 +214,12 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'telegram_first_name') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN telegram_first_name VARCHAR(100);
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'calendly_event_uri') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN calendly_event_uri TEXT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'calendly_start_time') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN calendly_start_time TIMESTAMPTZ;
+                END IF;
             END $$;
 
             CREATE TABLE IF NOT EXISTS scheduled_messages (
@@ -787,6 +793,49 @@ app.post('/api/send-lead-email', async (req, res) => {
     }
 });
 
+// --- Calendly: зберегти event_uri та отримати час зустрічі через API ---
+// Викликається з фронтенду одразу після calendly.event_scheduled postMessage
+app.post('/api/store-calendly-event', async (req, res) => {
+    const { email, event_uri } = req.body;
+    if (!email || !event_uri) return res.json({ ok: true });
+
+    const pat = process.env.CALENDLY_PAT;
+    if (!pat) {
+        console.warn('store-calendly-event: CALENDLY_PAT not set');
+        return res.json({ ok: true });
+    }
+
+    try {
+        // Отримати деталі події через Calendly API
+        const apiResp = await fetch(event_uri, {
+            headers: {
+                'Authorization': `Bearer ${pat}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const apiData = await apiResp.json();
+        const startTime = apiData?.resource?.start_time;
+
+        if (!startTime) {
+            console.warn(`store-calendly-event: no start_time in Calendly response for ${email}`);
+            return res.json({ ok: true });
+        }
+
+        // Зберегти в БД
+        await pool.query(
+            `UPDATE landing_waitlist SET calendly_event_uri = $1, calendly_start_time = $2
+             WHERE id = (SELECT id FROM landing_waitlist WHERE email = $3 ORDER BY created_at DESC LIMIT 1)`,
+            [event_uri, startTime, email]
+        );
+
+        console.log(`Calendly event stored: email=${email} start_time=${startTime}`);
+        res.json({ ok: true, start_time: startTime });
+    } catch (err) {
+        console.error('store-calendly-event error:', err.message);
+        res.json({ ok: true });
+    }
+});
+
 // --- Telegram: авторизация через Login Widget ---
 // Вызывается после того как лид нажал кнопку "Підключити Telegram" на лендинге
 app.post('/api/telegram-auth', async (req, res) => {
@@ -816,10 +865,54 @@ app.post('/api/telegram-auth', async (req, res) => {
         console.error('TG auth: DB update error:', err.message);
     }
 
-    // Запланировать напоминания если лид забронировал (reminders добавятся через Calendly webhook)
-    // Сейчас — отправить приветственное сообщение немедленно
+    // Відправити привітальне повідомлення
     const welcomeText = getTgWelcomeText(langKey, first_name, center_name, isBooked);
     await sendTelegramMessage(tgId, welcomeText);
+
+    // Якщо є збережений час зустрічі — запланувати нагадування
+    if (isBooked) {
+        try {
+            const meetingRow = await pool.query(
+                `SELECT calendly_start_time FROM landing_waitlist
+                 WHERE email = $1 AND calendly_start_time IS NOT NULL
+                 ORDER BY created_at DESC LIMIT 1`,
+                [email]
+            );
+            const startTime = meetingRow.rows[0]?.calendly_start_time;
+            if (startTime) {
+                const demoDate = new Date(startTime);
+                const remind24 = new Date(demoDate.getTime() - 24 * 60 * 60 * 1000);
+                const remind1  = new Date(demoDate.getTime() - 60 * 60 * 1000);
+                const timeStr  = demoDate.toLocaleString('uk-UA', {
+                    timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit',
+                    day: '2-digit', month: '2-digit'
+                });
+                const REMINDER_MSGS = {
+                    uk: { h24: `🗓 Нагадування!\n\nЗавтра о ${timeStr} — ваше демо Neuro.Educatimo.\n\nНічого готувати не потрібно. До зустрічі!`, h1: `⏰ Через 1 годину — ваше демо!\n\nЧас: ${timeStr}\n\nДо зустрічі! 🚀` },
+                    ru: { h24: `🗓 Напоминание!\n\nЗавтра в ${timeStr} — ваше демо Neuro.Educatimo.\n\nНичего готовить не нужно. До встречи!`, h1: `⏰ Через 1 час — ваше демо!\n\nВремя: ${timeStr}\n\nДо встречи! 🚀` },
+                    en: { h24: `🗓 Reminder!\n\nTomorrow at ${timeStr} — your Neuro.Educatimo demo.\n\nNothing to prepare. See you there!`, h1: `⏰ In 1 hour — your demo!\n\nTime: ${timeStr}\n\nSee you! 🚀` },
+                    pl: { h24: `🗓 Przypomnienie!\n\nJutro o ${timeStr} — Twoje demo Neuro.Educatimo.\n\nNic nie trzeba przygotowywać. Do zobaczenia!`, h1: `⏰ Za 1 godzinę — Twoje demo!\n\nGodzina: ${timeStr}\n\nDo zobaczenia! 🚀` },
+                    cs: { h24: `🗓 Připomínka!\n\nZítra v ${timeStr} — vaše demo Neuro.Educatimo.\n\nNení třeba nic připravovat. Na shledanou!`, h1: `⏰ Za 1 hodinu — vaše demo!\n\nČas: ${timeStr}\n\nNa shledanou! 🚀` },
+                };
+                const rm = REMINDER_MSGS[langKey] || REMINDER_MSGS.uk;
+                if (remind24 > new Date()) {
+                    await pool.query(
+                        `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                        [tgId, remind24.toISOString(), rm.h24]
+                    );
+                }
+                if (remind1 > new Date()) {
+                    await pool.query(
+                        `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                        [tgId, remind1.toISOString(), rm.h1]
+                    );
+                }
+                console.log(`TG reminders scheduled for tg_id=${tgId} demo=${startTime}`);
+            }
+        } catch (err) {
+            console.error('TG auth: reminder scheduling error:', err.message);
+        }
+    }
 
     console.log(`TG auth: tg_id=${tgId} email=${email} lang=${langKey} booked=${isBooked}`);
     res.json({ ok: true });

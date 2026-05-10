@@ -894,6 +894,15 @@
                 _ua_emailSent = true;
                 _closeCalendlyUa();
                 _sendLeadEmailUa(true);
+                // Зберегти event_uri → сервер отримає час зустрічі через Calendly API
+                var eventUri = e.data && e.data.payload && e.data.payload.event && e.data.payload.event.uri;
+                if (eventUri && _ua_leadEmail) {
+                    fetch('/api/store-calendly-event', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: _ua_leadEmail, event_uri: eventUri })
+                    }).catch(function() {});
+                }
                 _showTgStepUa(true);
             }
         });

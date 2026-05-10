@@ -888,6 +888,11 @@
                 document.body.style.overflow = '';
                 fetch('/api/send-lead-email', { method:'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ email:_cs_leadEmail, center_name:_cs_leadName, lang:'cs', booked:true }) }).catch(function(){});
+                var eventUri = e.data && e.data.payload && e.data.payload.event && e.data.payload.event.uri;
+                if (eventUri && _cs_leadEmail) {
+                    fetch('/api/store-calendly-event', { method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ email:_cs_leadEmail, event_uri:eventUri }) }).catch(function(){});
+                }
                 _showTgStepCs(true);
             }
         });
