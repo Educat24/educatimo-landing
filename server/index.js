@@ -460,10 +460,29 @@ function buildLandingEmailHtml(orgName, lang = 'uk', booked = null) {
     </a>
   </td></tr>`;
 
-    // Если лид уже забронировал — подтверждающий текст вместо CTA
+    // Если лид уже забронировал — другой p2 и блок подтверждения вместо steps+CTA
     const p2text = booked === true
         ? 'Ваш час для демо заброньовано — ми надіслали підтвердження на вашу пошту. До зустрічі!'
         : l.p2;
+
+    // Блок "Наступний крок" — показываем только если НЕ забронировал
+    const nextStepsBlock = booked === true
+        ? `<tr><td style="padding:0 40px 32px;">
+    <table width="100%" style="background:#E9F7EF;border-radius:8px;border-left:4px solid #27AE60;">
+    <tr><td style="padding:20px 24px;">
+      <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#1B4F72;">✅ Що відбудеться далі:</p>
+      <p style="margin:0 0 6px;font-size:14px;color:#2C3E50;">📩 &nbsp;Ви вже отримали листа від Calendly з підтвердженням і посиланням на зустріч</p>
+      <p style="margin:0 0 6px;font-size:14px;color:#2C3E50;">🔔 &nbsp;За добу до демо надійде нагадування</p>
+      <p style="margin:0;font-size:14px;color:#2C3E50;">🎥 &nbsp;На демо покажемо платформу зсередини: тести, AI-звіти, рекомендації для батьків</p>
+    </td></tr></table>
+  </td></tr>`
+        : `<tr><td style="padding:0 40px 32px;">
+    <table width="100%" style="background:#EBF5FB;border-radius:8px;border-left:4px solid #2E86C1;">
+    <tr><td style="padding:20px 24px;">
+      <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#1B4F72;">${l.nextTitle}</p>
+      ${stepsHtml}
+    </td></tr></table>
+  </td></tr>`;
 
     const body = `
   <tr><td style="padding:40px 40px 24px;">
@@ -474,13 +493,7 @@ function buildLandingEmailHtml(orgName, lang = 'uk', booked = null) {
   </td></tr>
   ${_brevoVideoBlock(t)}
   ${calendlyBlock}
-  <tr><td style="padding:0 40px 32px;">
-    <table width="100%" style="background:#EBF5FB;border-radius:8px;border-left:4px solid #2E86C1;">
-    <tr><td style="padding:20px 24px;">
-      <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#1B4F72;">${l.nextTitle}</p>
-      ${stepsHtml}
-    </td></tr></table>
-  </td></tr>`;
+  ${nextStepsBlock}`;
 
     return _brevoEmailWrap(t, body);
 }
