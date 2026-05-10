@@ -1010,9 +1010,57 @@ app.post('/api/tg-webhook', async (req, res) => {
         const username = msg.from?.username || null;
         const text = msg.text || '';
 
-        // Обрабатываем только /start TOKEN
+        // Обрабатываем /start TOKEN
         const startMatch = text.match(/^\/start\s+([a-f0-9]{32})$/);
-        if (!startMatch) return;
+
+        // Свободное сообщение от лида (не /start) — переслать админу + автоответ
+        if (!startMatch) {
+            const adminId = process.env.TELEGRAM_ADMIN_ID;
+
+            // Найти лида по telegram_id
+            let leadInfo = '';
+            try {
+                const leadRow = await pool.query(
+                    `SELECT email, center_name, lang FROM landing_waitlist
+                     WHERE telegram_id = $1 ORDER BY created_at DESC LIMIT 1`,
+                    [tgId]
+                );
+                if (leadRow.rows.length) {
+                    const l = leadRow.rows[0];
+                    leadInfo = `\n👤 <b>${l.center_name || firstName}</b> | ${l.email} | lang: ${l.lang || '?'}`;
+                    if (username) leadInfo += ` | @${username}`;
+                }
+            } catch (_) {}
+
+            // Переслать админу
+            if (adminId && text) {
+                const fwdText = `📨 <b>Сообщение от лида:</b>${leadInfo}\n\n💬 ${text}\n\n` +
+                    `<i>Ответить: откройте диалог с @${username || 'пользователем'} напрямую или используйте tg://user?id=${tgId}</i>`;
+                await sendTelegramMessage(adminId, fwdText);
+            }
+
+            // Автоответ лиду на его языке
+            let leadLang = 'uk';
+            try {
+                const lr = await pool.query(
+                    `SELECT lang FROM landing_waitlist WHERE telegram_id = $1 ORDER BY created_at DESC LIMIT 1`,
+                    [tgId]
+                );
+                if (lr.rows.length) leadLang = (lr.rows[0].lang || 'uk').toLowerCase().replace('cz','cs').replace('ua','uk');
+            } catch (_) {}
+
+            const autoReplies = {
+                uk: '✉️ Дякуємо! Ми отримали ваше повідомлення і відповімо протягом робочого дня.',
+                ru: '✉️ Спасибо! Мы получили ваше сообщение и ответим в течение рабочего дня.',
+                en: '✉️ Thank you! We received your message and will reply within one business day.',
+                pl: '✉️ Dziękujemy! Otrzymaliśmy Twoją wiadomość i odpowiemy w ciągu jednego dnia roboczego.',
+                cs: '✉️ Děkujeme! Obdrželi jsme vaši zprávu a odpovíme do jednoho pracovního dne.',
+            };
+            await sendTelegramMessage(tgId, autoReplies[leadLang] || autoReplies.uk);
+
+            console.log(`TG webhook: forwarded message from tg_id=${tgId} to admin`);
+            return;
+        }
 
         const token = startMatch[1];
 
