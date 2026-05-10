@@ -910,45 +910,36 @@
             _showTgStepEn(false);
         }
 
-        // ── Telegram step (en) ──────────────────────────────────────────────
+        // ── Telegram step (en) — deep link ──────────────────────────────────
         var _en_bookedForTg = false;
-        var _en_tgWidgetLoaded = false;
 
         function _showTgStepEn(booked) {
             _en_bookedForTg = booked;
             document.getElementById('tg-step-modal-en').style.display = 'flex';
-            if (!_en_tgWidgetLoaded) {
-                _en_tgWidgetLoaded = true;
-                var s = document.createElement('script');
-                s.async = true;
-                s.src = 'https://telegram.org/js/telegram-widget.js?22';
-                s.setAttribute('data-telegram-login', 'NeuroEducatimo_bot');
-                s.setAttribute('data-size', 'large');
-                s.setAttribute('data-request-access', 'write');
-                s.setAttribute('data-onauth', 'onTelegramAuth(user)');
-                s.setAttribute('data-lang', 'en');
-                document.getElementById('tg-widget-container-en').appendChild(s);
-            }
-        }
-
-        function onTelegramAuth(user) {
-            document.getElementById('tg-step-modal-en').style.display = 'none';
-            fetch('/api/telegram-auth', {
+            var wrap = document.getElementById('tg-btn-wrap-en');
+            wrap.innerHTML = '<span style="color:#aaa;font-size:13px;">⏳ Generating link…</span>';
+            fetch('/api/tg-start-token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.assign({}, user, {
-                    email: _en_leadEmail,
-                    center_name: _en_leadName,
-                    lang: 'en',
-                    booked: _en_bookedForTg
-                }))
-            }).catch(function() {});
-            _en_msgDiv.style.color = '';
-            if (_en_bookedForTg) {
-                _en_msgDiv.innerHTML = '<span style="color:#22c55e;font-weight:700;font-size:16px;">✅ Great! Confirmation is in your inbox. See you at the demo!</span>';
-            } else {
-                _en_msgDiv.innerHTML = '<span style="font-weight:700;font-size:15px;">✅ Thank you! Check your email — there\'s a booking link there.</span>';
-            }
+                body: JSON.stringify({ email: _en_leadEmail })
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (data.token) {
+                    var url = 'https://t.me/NeuroEducatimo_bot?start=' + data.token;
+                    wrap.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener" ' +
+                        'style="display:inline-flex;align-items:center;gap:10px;background:#229ED9;color:#fff;' +
+                        'border-radius:12px;padding:13px 26px;font-size:16px;font-weight:600;text-decoration:none;' +
+                        'box-shadow:0 4px 16px rgba(34,158,217,0.35);">' +
+                        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.79l-1.68 7.93c-.12.56-.45.7-.91.43l-2.52-1.86-1.22 1.17c-.13.13-.25.25-.51.25l.18-2.59 4.7-4.25c.2-.18-.04-.28-.32-.1L7.85 14.6l-2.48-.78c-.54-.17-.55-.54.12-.8l9.68-3.73c.45-.17.84.1.76.8z" fill="#fff"/></svg>' +
+                        'Connect Telegram 🔔</a>';
+                } else {
+                    wrap.innerHTML = '<span style="color:#e74c3c;font-size:13px;">Error. Please try later.</span>';
+                }
+            })
+            .catch(function() {
+                wrap.innerHTML = '<span style="color:#e74c3c;font-size:13px;">Error. Please try later.</span>';
+            });
         }
 
         function _skipTgStepEn() {
@@ -1058,11 +1049,12 @@
 
     <!-- TG step (en) -->
     <div id="tg-step-modal-en" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
-      <div style="background:#fff;border-radius:20px;max-width:400px;width:90%;padding:36px 28px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+      <div style="background:#fff;border-radius:20px;max-width:420px;width:90%;padding:36px 28px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
         <div style="font-size:52px;margin-bottom:12px;">🔔</div>
         <h3 style="margin:0 0 10px;font-size:19px;color:#1B4F72;font-weight:700;">Get a reminder before the demo</h3>
-        <p style="margin:0 0 22px;font-size:14px;color:#555;line-height:1.55;">The bot will remind you 24h and 1h before the meeting.<br>Nothing extra.</p>
-        <div id="tg-widget-container-en" style="display:flex;justify-content:center;min-height:44px;margin-bottom:16px;"></div>
+        <p style="margin:0 0 8px;font-size:14px;color:#555;line-height:1.55;">The bot will remind you 24h and 1h before the meeting.<br>Nothing extra.</p>
+        <p style="margin:0 0 22px;font-size:12px;color:#888;line-height:1.5;">Tap the button → Telegram opens → tap «Start» — done!</p>
+        <div id="tg-btn-wrap-en" style="display:flex;justify-content:center;min-height:52px;margin-bottom:16px;align-items:center;"></div>
         <button onclick="_skipTgStepEn()" style="background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;text-decoration:underline;margin-top:4px;">Skip →</button>
       </div>
     </div>

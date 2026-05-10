@@ -220,6 +220,9 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'calendly_start_time') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN calendly_start_time TIMESTAMPTZ;
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'tg_start_token') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN tg_start_token VARCHAR(64);
+                END IF;
             END $$;
 
             CREATE TABLE IF NOT EXISTS scheduled_messages (
@@ -973,6 +976,112 @@ app.post('/api/calendly-webhook', async (req, res) => {
     }
 });
 
+// --- Telegram: выдать одноразовый deep-link токен ---
+// Вызывается с фронтенда после заполнения формы
+// Возвращает { token } — вставляется в ссылку t.me/NeuroEducatimo_bot?start=TOKEN
+app.post('/api/tg-start-token', async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'email required' });
+    try {
+        const token = crypto.randomBytes(16).toString('hex');
+        await pool.query(
+            `UPDATE landing_waitlist SET tg_start_token = $1
+             WHERE id = (SELECT id FROM landing_waitlist WHERE email = $2 ORDER BY created_at DESC LIMIT 1)`,
+            [token, email]
+        );
+        console.log(`TG deep-link token issued for email=${email}`);
+        res.json({ token });
+    } catch (err) {
+        console.error('tg-start-token error:', err.message);
+        res.status(500).json({ error: 'DB error' });
+    }
+});
+
+// --- Telegram Webhook: обработать входящие обновления от бота ---
+// Telegram присылает POST сюда когда лид нажимает /start TOKEN
+app.post('/api/tg-webhook', async (req, res) => {
+    res.json({ ok: true }); // Telegram ждёт 200 немедленно
+    try {
+        const msg = req.body?.message;
+        if (!msg) return;
+
+        const tgId = msg.from?.id;
+        const firstName = msg.from?.first_name || '';
+        const username = msg.from?.username || null;
+        const text = msg.text || '';
+
+        // Обрабатываем только /start TOKEN
+        const startMatch = text.match(/^\/start\s+([a-f0-9]{32})$/);
+        if (!startMatch) return;
+
+        const token = startMatch[1];
+
+        // Найти лид по токену
+        const found = await pool.query(
+            `SELECT id, email, center_name, lang, calendly_start_time
+             FROM landing_waitlist
+             WHERE tg_start_token = $1
+             LIMIT 1`,
+            [token]
+        );
+        if (!found.rows.length) {
+            console.warn(`TG webhook: unknown token=${token} from tg_id=${tgId}`);
+            return;
+        }
+        const lead = found.rows[0];
+        const langKey = (lead.lang || 'uk').toLowerCase().replace('cz', 'cs').replace('ua', 'uk');
+        const isBooked = !!lead.calendly_start_time;
+
+        // Сохранить telegram_id, очистить токен (одноразовый)
+        await pool.query(
+            `UPDATE landing_waitlist
+             SET telegram_id = $1, telegram_username = $2, telegram_first_name = $3, tg_start_token = NULL
+             WHERE id = $4`,
+            [tgId, username, firstName, lead.id]
+        );
+
+        // Отправить приветственное сообщение
+        const welcomeText = getTgWelcomeText(langKey, firstName, lead.center_name, isBooked);
+        await sendTelegramMessage(tgId, welcomeText);
+
+        // Запланировать напоминания если есть время встречи
+        if (isBooked && lead.calendly_start_time) {
+            const demoDate = new Date(lead.calendly_start_time);
+            const remind24 = new Date(demoDate.getTime() - 24 * 60 * 60 * 1000);
+            const remind1  = new Date(demoDate.getTime() - 60 * 60 * 1000);
+            const timeStr  = demoDate.toLocaleString('uk-UA', {
+                timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit',
+                day: '2-digit', month: '2-digit'
+            });
+            const REMINDER_MSGS = {
+                uk: { h24: `🗓 Нагадування!\n\nЗавтра о ${timeStr} — ваше демо Neuro.Educatimo.\n\nНічого готувати не потрібно. До зустрічі!`, h1: `⏰ Через 1 годину — ваше демо!\n\nЧас: ${timeStr}\n\nДо зустрічі! 🚀` },
+                ru: { h24: `🗓 Напоминание!\n\nЗавтра в ${timeStr} — ваше демо Neuro.Educatimo.\n\nНичего готовить не нужно. До встречи!`, h1: `⏰ Через 1 час — ваше демо!\n\nВремя: ${timeStr}\n\nДо встречи! 🚀` },
+                en: { h24: `🗓 Reminder!\n\nTomorrow at ${timeStr} — your Neuro.Educatimo demo.\n\nNothing to prepare. See you there!`, h1: `⏰ In 1 hour — your demo!\n\nTime: ${timeStr}\n\nSee you! 🚀` },
+                pl: { h24: `🗓 Przypomnienie!\n\nJutro o ${timeStr} — Twoje demo Neuro.Educatimo.\n\nNic nie trzeba przygotowywać. Do zobaczenia!`, h1: `⏰ Za 1 godzinę — Twoje demo!\n\nGodzina: ${timeStr}\n\nDo zobaczenia! 🚀` },
+                cs: { h24: `🗓 Připomínka!\n\nZítra v ${timeStr} — vaše demo Neuro.Educatimo.\n\nNení třeba nic připravovat. Na shledanou!`, h1: `⏰ Za 1 hodinu — vaše demo!\n\nČas: ${timeStr}\n\nNa shledanou! 🚀` },
+            };
+            const rm = REMINDER_MSGS[langKey] || REMINDER_MSGS.uk;
+            if (remind24 > new Date()) {
+                await pool.query(
+                    `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                    [tgId, remind24.toISOString(), rm.h24]
+                );
+            }
+            if (remind1 > new Date()) {
+                await pool.query(
+                    `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                    [tgId, remind1.toISOString(), rm.h1]
+                );
+            }
+            console.log(`TG webhook: reminders scheduled for tg_id=${tgId} demo=${lead.calendly_start_time}`);
+        }
+
+        console.log(`TG webhook: connected tg_id=${tgId} email=${lead.email} lang=${langKey}`);
+    } catch (err) {
+        console.error('TG webhook handler error:', err.message);
+    }
+});
+
 // --- Blog API ---
 
 // Get all articles (for admin or public list)
@@ -1325,6 +1434,26 @@ setInterval(async () => {
 }, 60_000); // каждую минуту
 
 // Start server
-app.listen(port, () => {
+app.listen(port, async () => {
     console.log(`Server running at http://localhost:${port}`);
+
+    // Зарегистрировать Telegram webhook
+    const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (tgToken) {
+        try {
+            const webhookUrl = 'https://www.neuro.educatimo.com/api/tg-webhook';
+            const resp = await fetch(`https://api.telegram.org/bot${tgToken}/setWebhook`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message'] })
+            });
+            const json = await resp.json();
+            if (json.ok) console.log(`TG: webhook registered → ${webhookUrl}`);
+            else console.error('TG: setWebhook failed:', json.description);
+        } catch (err) {
+            console.error('TG: setWebhook error:', err.message);
+        }
+    } else {
+        console.warn('TG: TELEGRAM_BOT_TOKEN not set, webhook not registered');
+    }
 });

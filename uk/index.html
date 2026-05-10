@@ -944,42 +944,38 @@
             }
         }
 
-        // ── Telegram крок (uk) ──────────────────────────────────────────────
+        // ── Telegram крок (uk) — deep link ──────────────────────────────────
         var _ua_bookedForTg = false;
-        var _ua_tgWidgetLoaded = false;
 
         function _showTgStepUa(booked) {
             _ua_bookedForTg = booked;
-            var modal = document.getElementById('tg-step-modal-ua');
-            modal.style.display = 'flex';
-            // Завантажити TG-віджет один раз
-            if (!_ua_tgWidgetLoaded) {
-                _ua_tgWidgetLoaded = true;
-                var s = document.createElement('script');
-                s.async = true;
-                s.src = 'https://telegram.org/js/telegram-widget.js?22';
-                s.setAttribute('data-telegram-login', 'NeuroEducatimo_bot');
-                s.setAttribute('data-size', 'large');
-                s.setAttribute('data-request-access', 'write');
-                s.setAttribute('data-onauth', 'onTelegramAuth(user)');
-                s.setAttribute('data-lang', 'uk');
-                document.getElementById('tg-widget-container-ua').appendChild(s);
-            }
-        }
-
-        function onTelegramAuth(user) {
-            document.getElementById('tg-step-modal-ua').style.display = 'none';
-            fetch('/api/telegram-auth', {
+            document.getElementById('tg-step-modal-ua').style.display = 'flex';
+            var btn = document.getElementById('tg-deeplink-btn-ua');
+            var wrap = document.getElementById('tg-btn-wrap-ua');
+            btn.style.display = 'none';
+            wrap.innerHTML = '<span style="color:#aaa;font-size:13px;">⏳ Генерація посилання…</span>';
+            fetch('/api/tg-start-token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.assign({}, user, {
-                    email: _ua_leadEmail,
-                    center_name: _ua_leadName,
-                    lang: 'uk',
-                    booked: _ua_bookedForTg
-                }))
-            }).catch(function() {});
-            _showSuccessUa(_ua_bookedForTg);
+                body: JSON.stringify({ email: _ua_leadEmail })
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (data.token) {
+                    var url = 'https://t.me/NeuroEducatimo_bot?start=' + data.token;
+                    wrap.innerHTML = '<a href="' + url + '" target="_blank" rel="noopener" ' +
+                        'style="display:inline-flex;align-items:center;gap:10px;background:#229ED9;color:#fff;' +
+                        'border-radius:12px;padding:13px 26px;font-size:16px;font-weight:600;text-decoration:none;' +
+                        'box-shadow:0 4px 16px rgba(34,158,217,0.35);">' +
+                        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.93 6.79l-1.68 7.93c-.12.56-.45.7-.91.43l-2.52-1.86-1.22 1.17c-.13.13-.25.25-.51.25l.18-2.59 4.7-4.25c.2-.18-.04-.28-.32-.1L7.85 14.6l-2.48-.78c-.54-.17-.55-.54.12-.8l9.68-3.73c.45-.17.84.1.76.8z" fill="#fff"/></svg>' +
+                        'Підключити Telegram 🔔</a>';
+                } else {
+                    wrap.innerHTML = '<span style="color:#e74c3c;font-size:13px;">Помилка. Спробуйте пізніше.</span>';
+                }
+            })
+            .catch(function() {
+                wrap.innerHTML = '<span style="color:#e74c3c;font-size:13px;">Помилка. Спробуйте пізніше.</span>';
+            });
         }
 
         function _skipTgStepUa() {
@@ -1084,11 +1080,13 @@
 
     <!-- TG-крок (uk): з'являється після Calendly -->
     <div id="tg-step-modal-ua" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
-      <div style="background:#fff;border-radius:20px;max-width:400px;width:90%;padding:36px 28px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+      <div style="background:#fff;border-radius:20px;max-width:420px;width:90%;padding:36px 28px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
         <div style="font-size:52px;margin-bottom:12px;">🔔</div>
         <h3 style="margin:0 0 10px;font-size:19px;color:#1B4F72;font-weight:700;">Отримайте нагадування перед демо</h3>
-        <p style="margin:0 0 22px;font-size:14px;color:#555;line-height:1.55;">Бот надішле нагадування за 24 год і за 1 год до початку.<br>Більше нічого зайвого.</p>
-        <div id="tg-widget-container-ua" style="display:flex;justify-content:center;min-height:44px;margin-bottom:16px;"></div>
+        <p style="margin:0 0 8px;font-size:14px;color:#555;line-height:1.55;">Бот надішле нагадування за 24 год і за 1 год до початку.<br>Більше нічого зайвого.</p>
+        <p style="margin:0 0 22px;font-size:12px;color:#888;line-height:1.5;">Натисніть кнопку → відкриється Telegram → натисніть «Start» — готово!</p>
+        <div id="tg-btn-wrap-ua" style="display:flex;justify-content:center;min-height:52px;margin-bottom:16px;align-items:center;"></div>
+        <button id="tg-deeplink-btn-ua" style="display:none;"></button>
         <button onclick="_skipTgStepUa()" style="background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;text-decoration:underline;margin-top:4px;">Пропустити →</button>
       </div>
     </div>
