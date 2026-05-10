@@ -1013,52 +1013,126 @@ app.post('/api/tg-webhook', async (req, res) => {
         // Обрабатываем /start TOKEN
         const startMatch = text.match(/^\/start\s+([a-f0-9]{32})$/);
 
-        // Свободное сообщение от лида (не /start) — переслать админу + автоответ
+        // Свободное сообщение от лида (не /start) — AI-ответ + уведомление админу
         if (!startMatch) {
             const adminId = process.env.TELEGRAM_ADMIN_ID;
 
-            // Найти лида по telegram_id
+            // Найти лида по telegram_id — получить язык и контекст
+            let leadLang = 'uk';
             let leadInfo = '';
+            let centerName = '';
             try {
                 const leadRow = await pool.query(
-                    `SELECT email, center_name, lang FROM landing_waitlist
+                    `SELECT email, center_name, lang, calendly_start_time FROM landing_waitlist
                      WHERE telegram_id = $1 ORDER BY created_at DESC LIMIT 1`,
                     [tgId]
                 );
                 if (leadRow.rows.length) {
                     const l = leadRow.rows[0];
-                    leadInfo = `\n👤 <b>${l.center_name || firstName}</b> | ${l.email} | lang: ${l.lang || '?'}`;
+                    centerName = l.center_name || firstName || '';
+                    leadLang = (l.lang || 'uk').toLowerCase().replace('cz','cs').replace('ua','uk');
+                    const booked = l.calendly_start_time ? '✅ записан на демо' : '⏳ не записан';
+                    leadInfo = `\n👤 <b>${centerName}</b> | ${l.email} | lang: ${l.lang || '?'} | ${booked}`;
                     if (username) leadInfo += ` | @${username}`;
                 }
             } catch (_) {}
 
-            // Переслать админу
+            // Языковые инструкции для системного промпта
+            const langInstructions = {
+                uk: 'Відповідай виключно українською мовою.',
+                ru: 'Отвечай исключительно на русском языке.',
+                en: 'Reply exclusively in English.',
+                pl: 'Odpowiadaj wyłącznie po polsku.',
+                cs: 'Odpovídej výhradně česky.',
+            };
+            const langInstruction = langInstructions[leadLang] || langInstructions.uk;
+
+            // Системный промпт — знания о платформе + жёсткие ограничения
+            const systemPrompt = `Ты — помощник компании Neuro.Educatimo. ${langInstruction}
+
+## Что такое Neuro.Educatimo
+SaaS-платформа для образовательных центров: объективное тестирование и мониторинг когнитивного развития детей 5–12 лет. Решает проблему "невидимого прогресса" — родители не верят словам педагога, платформа даёт им PDF-отчёт с цифрами под брендом центра.
+
+## Что входит в платформу
+- 9 когнитивных тестов: слуховая и зрительная память (кратко- и долгосрочная), внимание (таблицы Шульте), логика (числовые последовательности), визуально-моторная координация (графический диктант), логическое мышление, самооценка
+- Возрасты: 5–6, 7–8, 9–12 лет
+- Режимы: индивидуальное и групповое тестирование
+- PDF-отчёт: результаты 9 тестов, графики динамики, AI-интерпретации, рекомендации — под брендом вашего центра
+- Роли: владелец центра, педагог/специалист
+- Тарифы: Trial → Basic → Professional → Enterprise (детали — на демо)
+
+## Главная ценность для бизнеса
+- Снижение оттока клиентов (родители видят прогресс в цифрах)
+- Дополнительный платный сервис тестирования
+- Объективный контроль качества работы педагогов
+
+## Как записаться на демо
+Ссылка: https://calendly.com/alekssve/neuro-educatimo
+На демо показываем платформу вживую, отвечаем на все вопросы, обсуждаем конкретный центр.
+
+## Контекст лида
+Имя/организация: ${centerName || 'неизвестно'}
+
+## СТРОГИЕ ПРАВИЛА — нарушать нельзя
+1. Отвечай ТОЛЬКО на вопросы о платформе, образовательных технологиях, когнитивном развитии детей
+2. Никогда не раскрывай: технические детали реализации, цены без демо, данные других клиентов, внутренние процессы компании
+3. Если вопрос не по теме (политика, личное, конкуренты и т.д.) — вежливо объясни, что можешь помочь только по теме платформы
+4. Сложные или специфические вопросы — приглашай на демо, не придумывай ответы
+5. Отвечай коротко — 2–5 предложений. Без лишних вступлений и прощаний
+6. Не представляйся как AI — ты просто помощник Neuro.Educatimo`;
+
+            // Запрос к Claude Haiku
+            let aiReply = null;
+            const anthropicKey = process.env.ANTHROPIC_API_KEY;
+            if (anthropicKey && text) {
+                try {
+                    const aiResp = await fetch('https://api.anthropic.com/v1/messages', {
+                        method: 'POST',
+                        headers: {
+                            'x-api-key': anthropicKey,
+                            'anthropic-version': '2023-06-01',
+                            'content-type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'claude-haiku-4-5',
+                            max_tokens: 400,
+                            system: systemPrompt,
+                            messages: [{ role: 'user', content: text }]
+                        })
+                    });
+                    const aiData = await aiResp.json();
+                    aiReply = aiData?.content?.[0]?.text || null;
+                    if (!aiResp.ok) console.error('Claude API error:', JSON.stringify(aiData));
+                } catch (err) {
+                    console.error('Claude API exception:', err.message);
+                }
+            }
+
+            // Если AI не ответил — запасной автоответ
+            if (!aiReply) {
+                const fallbacks = {
+                    uk: '✉️ Дякуємо за питання! Відповімо найближчим часом.',
+                    ru: '✉️ Спасибо за вопрос! Ответим в ближайшее время.',
+                    en: '✉️ Thank you for your question! We\'ll reply shortly.',
+                    pl: '✉️ Dziękujemy za pytanie! Odpowiemy wkrótce.',
+                    cs: '✉️ Děkujeme za otázku! Odpovíme brzy.',
+                };
+                aiReply = fallbacks[leadLang] || fallbacks.uk;
+            }
+
+            // Отправить AI-ответ лиду
+            await sendTelegramMessage(tgId, aiReply);
+
+            // Уведомить админа: вопрос лида + что ответил бот
             if (adminId && text) {
-                const fwdText = `📨 <b>Сообщение от лида:</b>${leadInfo}\n\n💬 ${text}\n\n` +
-                    `<i>Ответить: откройте диалог с @${username || 'пользователем'} напрямую или используйте tg://user?id=${tgId}</i>`;
+                const fwdText = `📨 <b>Вопрос лида:</b>${leadInfo}\n\n` +
+                    `💬 <i>${text}</i>\n\n` +
+                    `🤖 <b>Ответил бот:</b>\n${aiReply}\n\n` +
+                    `<i>Написать лиду: tg://user?id=${tgId}</i>`;
                 await sendTelegramMessage(adminId, fwdText);
             }
 
-            // Автоответ лиду на его языке
-            let leadLang = 'uk';
-            try {
-                const lr = await pool.query(
-                    `SELECT lang FROM landing_waitlist WHERE telegram_id = $1 ORDER BY created_at DESC LIMIT 1`,
-                    [tgId]
-                );
-                if (lr.rows.length) leadLang = (lr.rows[0].lang || 'uk').toLowerCase().replace('cz','cs').replace('ua','uk');
-            } catch (_) {}
-
-            const autoReplies = {
-                uk: '✉️ Дякуємо! Ми отримали ваше повідомлення і відповімо протягом робочого дня.',
-                ru: '✉️ Спасибо! Мы получили ваше сообщение и ответим в течение рабочего дня.',
-                en: '✉️ Thank you! We received your message and will reply within one business day.',
-                pl: '✉️ Dziękujemy! Otrzymaliśmy Twoją wiadomość i odpowiemy w ciągu jednego dnia roboczego.',
-                cs: '✉️ Děkujeme! Obdrželi jsme vaši zprávu a odpovíme do jednoho pracovního dne.',
-            };
-            await sendTelegramMessage(tgId, autoReplies[leadLang] || autoReplies.uk);
-
-            console.log(`TG webhook: forwarded message from tg_id=${tgId} to admin`);
+            console.log(`TG AI reply: tg_id=${tgId} lang=${leadLang} q="${text.slice(0,50)}"`);
             return;
         }
 
