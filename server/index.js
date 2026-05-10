@@ -30,6 +30,7 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const pgSession = require('connect-pg-simple')(session);
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const { KEYWORD_MAPS, TERMS } = require('./seo_config');
 
 const app = express();
@@ -204,7 +205,25 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'calendly_booked') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN calendly_booked BOOLEAN DEFAULT NULL;
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'telegram_id') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN telegram_id BIGINT;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'telegram_username') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN telegram_username VARCHAR(100);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'telegram_first_name') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN telegram_first_name VARCHAR(100);
+                END IF;
             END $$;
+
+            CREATE TABLE IF NOT EXISTS scheduled_messages (
+                id SERIAL PRIMARY KEY,
+                telegram_id BIGINT NOT NULL,
+                send_at TIMESTAMPTZ NOT NULL,
+                message TEXT NOT NULL,
+                sent BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
 
             CREATE TABLE IF NOT EXISTS articles (
                 id SERIAL PRIMARY KEY,
@@ -579,6 +598,72 @@ async function sendBrevoLeadEmail(toEmail, toName, subject, html) {
     }
 }
 
+// ─── Telegram Bot helpers ─────────────────────────────────────────────────────
+
+const CALENDLY_DEMO_URL = 'https://calendly.com/alekssve/neuro-educatimo';
+
+// Верификация подписи от Telegram Login Widget (HMAC-SHA256)
+function verifyTelegramAuth(data) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return false;
+    const { hash, ...rest } = data;
+    if (!hash) return false;
+    const secret = crypto.createHash('sha256').update(token).digest();
+    const checkString = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('\n');
+    const hmac = crypto.createHmac('sha256', secret).update(checkString).digest('hex');
+    // auth_date не должна быть старше 24 часов
+    const authDate = parseInt(rest.auth_date || '0', 10);
+    if (Date.now() / 1000 - authDate > 86400) return false;
+    return hmac === hash;
+}
+
+// Отправить сообщение через Telegram Bot API
+async function sendTelegramMessage(chatId, text) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) { console.warn('TG: TELEGRAM_BOT_TOKEN not set'); return; }
+    try {
+        const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+        });
+        const json = await resp.json();
+        if (!json.ok) console.error('TG sendMessage error:', json.description);
+        else console.log(`TG: message sent to ${chatId}`);
+    } catch (err) {
+        console.error('TG sendMessage exception:', err.message);
+    }
+}
+
+// Текст первого сообщения бота по языку и статусу бронирования
+function getTgWelcomeText(lang, firstName, orgName, booked) {
+    const name = firstName || orgName || '';
+    const msgs = {
+        uk: {
+            booked: `Привіт, ${name}! 👋\n\nВи записались на демо Neuro.Educatimo — чудово! 🗓\n\nНагадаємо за 24 год і за 1 год до початку.\n\nЄ питання? Пишіть тут, відповімо швидко! 💬`,
+            skipped: `Привіт, ${name}! 👋\n\nОтримали заявку від «${orgName}» — дякуємо!\n\nЩе не записались на демо? Займе лише 1 хвилину:\n📅 ${CALENDLY_DEMO_URL}\n\nЄ питання? Пишіть тут! 💬`,
+        },
+        ru: {
+            booked: `Привет, ${name}! 👋\n\nВы записались на демо Neuro.Educatimo — отлично! 🗓\n\nНапомним за 24 ч и за 1 ч до начала.\n\nЕсть вопросы? Пишите здесь! 💬`,
+            skipped: `Привет, ${name}! 👋\n\nПолучили заявку от «${orgName}» — спасибо!\n\nЕщё не записались на демо? Займёт 1 минуту:\n📅 ${CALENDLY_DEMO_URL}\n\nЕсть вопросы? Пишите! 💬`,
+        },
+        en: {
+            booked: `Hi, ${name}! 👋\n\nYou've booked a Neuro.Educatimo demo — great! 🗓\n\nWe'll remind you 24h and 1h before.\n\nAny questions? Write here! 💬`,
+            skipped: `Hi, ${name}! 👋\n\nWe received your request from «${orgName}» — thank you!\n\nHaven't booked the demo yet? It takes just 1 minute:\n📅 ${CALENDLY_DEMO_URL}\n\nQuestions? Write here! 💬`,
+        },
+        pl: {
+            booked: `Cześć, ${name}! 👋\n\nZarezerwowałeś/-aś demo Neuro.Educatimo — świetnie! 🗓\n\nPrzypomnimy 24h i 1h przed spotkaniem.\n\nPytania? Pisz tutaj! 💬`,
+            skipped: `Cześć, ${name}! 👋\n\nOtrzymaliśmy zgłoszenie od «${orgName}» — dziękujemy!\n\nJeszcze nie zarezerwowałeś/-aś demo? To tylko 1 minuta:\n📅 ${CALENDLY_DEMO_URL}\n\nPytania? Pisz tutaj! 💬`,
+        },
+        cs: {
+            booked: `Ahoj, ${name}! 👋\n\nZarezervovali jste demo Neuro.Educatimo — skvělé! 🗓\n\nPřipomeneme 24h a 1h před schůzkou.\n\nMáte otázky? Napište zde! 💬`,
+            skipped: `Ahoj, ${name}! 👋\n\nObdrželi jsme žádost od «${orgName}» — děkujeme!\n\nJeště jste si nezarezervovali demo? Trvá jen 1 minutu:\n📅 ${CALENDLY_DEMO_URL}\n\nOtázky? Napište zde! 💬`,
+        },
+    };
+    const l = msgs[lang] || msgs.uk;
+    return booked ? l.booked : l.skipped;
+}
+
 // API Endpoint: save to DB and/or send email. Success if at least one works (so form works even when DB is unavailable on prod).
 app.post('/api/register', parseForm, async (req, res) => {
     const { email, lang } = req.body;
@@ -699,6 +784,99 @@ app.post('/api/send-lead-email', async (req, res) => {
     } catch (err) {
         console.error('send-lead-email error:', err.message || err);
         res.status(500).json({ error: 'Failed to send email' });
+    }
+});
+
+// --- Telegram: авторизация через Login Widget ---
+// Вызывается после того как лид нажал кнопку "Підключити Telegram" на лендинге
+app.post('/api/telegram-auth', async (req, res) => {
+    const { id: tgId, first_name, username, hash, auth_date, email, center_name, lang, booked } = req.body;
+    if (!tgId || !hash) return res.status(400).json({ error: 'Missing TG data' });
+
+    // Верифицировать подпись
+    if (!verifyTelegramAuth(req.body)) {
+        console.warn(`TG auth: invalid signature for tg_id=${tgId}`);
+        return res.status(403).json({ error: 'Invalid Telegram signature' });
+    }
+
+    const langKey = (lang || 'uk').toLowerCase();
+    const isBooked = booked === true || booked === 'true';
+
+    // Сохранить telegram_id в БД
+    try {
+        await pool.query(
+            `UPDATE landing_waitlist
+             SET telegram_id = $1, telegram_username = $2, telegram_first_name = $3
+             WHERE email = $4 AND telegram_id IS NULL
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [tgId, username || null, first_name || null, email]
+        );
+    } catch (err) {
+        console.error('TG auth: DB update error:', err.message);
+    }
+
+    // Запланировать напоминания если лид забронировал (reminders добавятся через Calendly webhook)
+    // Сейчас — отправить приветственное сообщение немедленно
+    const welcomeText = getTgWelcomeText(langKey, first_name, center_name, isBooked);
+    await sendTelegramMessage(tgId, welcomeText);
+
+    console.log(`TG auth: tg_id=${tgId} email=${email} lang=${langKey} booked=${isBooked}`);
+    res.json({ ok: true });
+});
+
+// --- Calendly Webhook: планировать TG-напоминания о демо ---
+// Настроить в Calendly: Settings → Integrations → Webhooks → POST /api/calendly-webhook
+app.post('/api/calendly-webhook', async (req, res) => {
+    try {
+        const event = req.body?.event;
+        const payload = req.body?.payload;
+        if (event !== 'invitee.created' || !payload) return res.json({ ok: true });
+
+        const inviteeEmail = payload?.email;
+        const startTime = payload?.scheduled_event?.start_time; // ISO string
+        if (!inviteeEmail || !startTime) return res.json({ ok: true });
+
+        // Найти лид по email, получить telegram_id
+        const result = await pool.query(
+            `SELECT telegram_id FROM landing_waitlist WHERE email = $1 AND telegram_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+            [inviteeEmail]
+        );
+        if (!result.rows.length || !result.rows[0].telegram_id) {
+            console.log(`Calendly webhook: no TG for ${inviteeEmail} — skip reminders`);
+            return res.json({ ok: true });
+        }
+        const tgId = result.rows[0].telegram_id;
+        const demoDate = new Date(startTime);
+
+        // Напоминание за 24 часа
+        const remind24 = new Date(demoDate.getTime() - 24 * 60 * 60 * 1000);
+        // Напоминание за 1 час
+        const remind1 = new Date(demoDate.getTime() - 60 * 60 * 1000);
+
+        const timeStr = demoDate.toLocaleString('uk-UA', { timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+
+        const msg24 = `🗓 Нагадування!\n\nЗавтра о ${timeStr} — ваше демо Neuro.Educatimo.\n\nНічого готувати не потрібно. До зустрічі!`;
+        const msg1  = `⏰ Через 1 годину — ваше демо!\n\nЧас: ${timeStr}\n\nДо зустрічі!`;
+
+        if (remind24 > new Date()) {
+            await pool.query(
+                `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                [tgId, remind24.toISOString(), msg24]
+            );
+        }
+        if (remind1 > new Date()) {
+            await pool.query(
+                `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                [tgId, remind1.toISOString(), msg1]
+            );
+        }
+
+        console.log(`Calendly webhook: reminders scheduled for tg_id=${tgId} demo=${startTime}`);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('Calendly webhook error:', err.message);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -1034,6 +1212,24 @@ app.get('/admin', isAdmin, (req, res) => {
     });
 });
 
+
+// ─── Cron: отправить запланированные TG-напоминания ─────────────────────────
+setInterval(async () => {
+    try {
+        const result = await pool.query(
+            `SELECT id, telegram_id, message FROM scheduled_messages
+             WHERE sent = FALSE AND send_at <= NOW()
+             ORDER BY send_at ASC LIMIT 10`
+        );
+        for (const row of result.rows) {
+            await sendTelegramMessage(row.telegram_id, row.message);
+            await pool.query(`UPDATE scheduled_messages SET sent = TRUE WHERE id = $1`, [row.id]);
+        }
+        if (result.rows.length) console.log(`TG cron: sent ${result.rows.length} scheduled messages`);
+    } catch (err) {
+        console.error('TG cron error:', err.message);
+    }
+}, 60_000); // каждую минуту
 
 // Start server
 app.listen(port, () => {

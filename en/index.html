@@ -891,8 +891,7 @@
                 document.body.style.overflow = '';
                 fetch('/api/send-lead-email', { method:'POST', headers:{'Content-Type':'application/json'},
                     body: JSON.stringify({ email:_en_leadEmail, center_name:_en_leadName, lang:'en', booked:true }) }).catch(function(){});
-                _en_msgDiv.style.color = '';
-                _en_msgDiv.innerHTML = '<span style="color:#22c55e;font-weight:700;font-size:16px;">✅ Great! Confirmation is in your inbox. See you at the demo!</span>';
+                _showTgStepEn(true);
             }
         });
 
@@ -903,8 +902,58 @@
             document.body.style.overflow = '';
             fetch('/api/send-lead-email', { method:'POST', headers:{'Content-Type':'application/json'},
                 body: JSON.stringify({ email:_en_leadEmail, center_name:_en_leadName, lang:'en', booked:false }) }).catch(function(){});
+            _showTgStepEn(false);
+        }
+
+        // ── Telegram step (en) ──────────────────────────────────────────────
+        var _en_bookedForTg = false;
+        var _en_tgWidgetLoaded = false;
+
+        function _showTgStepEn(booked) {
+            _en_bookedForTg = booked;
+            document.getElementById('tg-step-modal-en').style.display = 'flex';
+            if (!_en_tgWidgetLoaded) {
+                _en_tgWidgetLoaded = true;
+                var s = document.createElement('script');
+                s.async = true;
+                s.src = 'https://telegram.org/js/telegram-widget.js?22';
+                s.setAttribute('data-telegram-login', 'NeuroEducatimo_bot');
+                s.setAttribute('data-size', 'large');
+                s.setAttribute('data-request-access', 'write');
+                s.setAttribute('data-onauth', 'onTelegramAuth(user)');
+                s.setAttribute('data-lang', 'en');
+                document.getElementById('tg-widget-container-en').appendChild(s);
+            }
+        }
+
+        function onTelegramAuth(user) {
+            document.getElementById('tg-step-modal-en').style.display = 'none';
+            fetch('/api/telegram-auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({}, user, {
+                    email: _en_leadEmail,
+                    center_name: _en_leadName,
+                    lang: 'en',
+                    booked: _en_bookedForTg
+                }))
+            }).catch(function() {});
             _en_msgDiv.style.color = '';
-            _en_msgDiv.innerHTML = '<span style="font-weight:700;font-size:15px;">✅ Thank you! Check your email — there\'s a booking link there.</span>';
+            if (_en_bookedForTg) {
+                _en_msgDiv.innerHTML = '<span style="color:#22c55e;font-weight:700;font-size:16px;">✅ Great! Confirmation is in your inbox. See you at the demo!</span>';
+            } else {
+                _en_msgDiv.innerHTML = '<span style="font-weight:700;font-size:15px;">✅ Thank you! Check your email — there\'s a booking link there.</span>';
+            }
+        }
+
+        function _skipTgStepEn() {
+            document.getElementById('tg-step-modal-en').style.display = 'none';
+            _en_msgDiv.style.color = '';
+            if (_en_bookedForTg) {
+                _en_msgDiv.innerHTML = '<span style="color:#22c55e;font-weight:700;font-size:16px;">✅ Great! Confirmation is in your inbox. See you at the demo!</span>';
+            } else {
+                _en_msgDiv.innerHTML = '<span style="font-weight:700;font-size:15px;">✅ Thank you! Check your email — there\'s a booking link there.</span>';
+            }
         }
 
         // Function to toggle transcription visibility
@@ -999,6 +1048,17 @@
         <div style="padding:14px 24px;text-align:center;border-top:1px solid #eee;">
           <button onclick="skipCalendlyEn()" style="background:none;border:none;color:#888;font-size:14px;cursor:pointer;text-decoration:underline;">→ I'll choose a date later</button>
         </div>
+      </div>
+    </div>
+
+    <!-- TG step (en) -->
+    <div id="tg-step-modal-en" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:20px;max-width:400px;width:90%;padding:36px 28px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.35);">
+        <div style="font-size:52px;margin-bottom:12px;">🔔</div>
+        <h3 style="margin:0 0 10px;font-size:19px;color:#1B4F72;font-weight:700;">Get a reminder before the demo</h3>
+        <p style="margin:0 0 22px;font-size:14px;color:#555;line-height:1.55;">The bot will remind you 24h and 1h before the meeting.<br>Nothing extra.</p>
+        <div id="tg-widget-container-en" style="display:flex;justify-content:center;min-height:44px;margin-bottom:16px;"></div>
+        <button onclick="_skipTgStepEn()" style="background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;text-decoration:underline;margin-top:4px;">Skip →</button>
       </div>
     </div>
 </body>
