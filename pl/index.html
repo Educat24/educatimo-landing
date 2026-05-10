@@ -66,6 +66,8 @@
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet">
+    <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
 
     <script type="application/ld+json">
     {
@@ -742,9 +744,9 @@
                     <label for="email-pl">Email</label>
                     <input type="email" id="email-pl" name="email" placeholder="email@example.com" required>
 
-                    <label for="phone-pl">Telefon</label>
+                    <label for="phone-pl">Telefon&nbsp;<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" style="vertical-align:middle;margin-bottom:2px;"><path fill="#229ED9" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.281c-.144.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.243-.213-.054-.333-.373-.12L8.984 13.65l-2.962-.924c-.643-.205-.657-.643.136-.954l11.57-4.46c.537-.194 1.006.131.834.936z"/></svg></label>
                     <input type="tel" id="phone-pl" name="phone" placeholder="+48 XXX XXX XXX" required>
-                    <p style="font-size:13px;color:#888;margin:4px 0 10px;">Podaj numer powiązany z Telegramem — napiszemy do Ciebie tam.</p>
+                    <p style="font-size:14px;color:#229ED9;font-weight:500;margin:5px 0 12px;display:flex;align-items:center;gap:5px;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" style="flex-shrink:0;"><path fill="#229ED9" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248-1.97 9.281c-.144.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.243-.213-.054-.333-.373-.12L8.984 13.65l-2.962-.924c-.643-.205-.657-.643.136-.954l11.57-4.46c.537-.194 1.006.131.834.936z"/></svg>Podaj numer powiązany z Telegramem — napiszemy do Ciebie tam.</p>
 
                     <label for="org-type-pl">Typ placówki</label>
                     <select id="org-type-pl" name="org_type" required>
@@ -819,52 +821,91 @@
         })();
     </script>
     <script>
-        // Zmieniono ID formularza i komunikatu, aby uniknąć konfliktów
-        var form = document.getElementById("waitlist-form-pl");
+        // ── Calendly flow (pl) ──────────────────────────────────────────────
+        var _pl_form       = document.getElementById('waitlist-form-pl');
+        var _pl_msgDiv     = document.getElementById('form-message-pl');
+        var _pl_leadEmail  = '';
+        var _pl_leadName   = '';
+        var _pl_emailSent  = false;
+        var _pl_calendlyInit = false;
 
-        async function handleSubmit(event) {
-            event.preventDefault();
+        _pl_form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            var button = _pl_form.querySelector('button[type="submit"]');
+            var data   = new FormData(_pl_form);
+            data.set('defer_email', 'true');
 
-            var messageDiv = document.getElementById("form-message-pl");
-            var button = form.querySelector("button");
-            var data = new FormData(event.target);
-
-            // Pokaż użytkownikowi, że trwa wysyłanie
-            button.disabled = true;
-            button.innerText = "Wysyłanie...";
-            messageDiv.innerText = "";
+            button.disabled  = true;
+            button.innerText = 'Wysyłanie...';
+            _pl_msgDiv.innerText = '';
 
             try {
-                const response = await fetch(event.target.action, {
-                    method: form.method,
-                    body: data,
-                    headers: {
-                        'Accept': 'application/json'
-                    }
+                var resp = await fetch('/api/register', {
+                    method: 'POST', body: data, headers: { 'Accept': 'application/json' }
                 });
+                if (!resp.ok) throw new Error('server');
+                var result = await resp.json();
 
-                if (response.ok) {
-                    // Sukces!
-                    form.reset();
-                    button.style.display = 'none';
-                    messageDiv.innerText = "Dziękujemy! Otrzymaliśmy Twoją prośbę. Oczekuj e-maila z linkiem do zapisu na demo.";
-                    messageDiv.style.color = "var(--accent-color)";
-                    try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch (_) {}
-                } else {
-                    // Błąd
-                    throw new Error('Network response was not ok.');
-                }
-            } catch (error) {
-                // Pokaż błąd
-                messageDiv.innerText = "Wystąpił błąd. Spróbuj ponownie.";
-                messageDiv.style.color = "red";
-                button.disabled = false;
-                button.innerText = "Zamów demonstrację (15 min)";
+                _pl_leadEmail = result.email;
+                _pl_leadName  = result.center_name;
+
+                try { if (window.fbq) window.fbq('track', 'Lead', { content_name: 'Landing' }); } catch(_) {}
+
+                _pl_form.style.display = 'none';
+                _openCalendlyPl();
+
+            } catch(err) {
+                _pl_msgDiv.innerText   = 'Wystąpił błąd. Spróbuj ponownie.';
+                _pl_msgDiv.style.color = 'red';
+                button.disabled  = false;
+                button.innerText = 'Zamów demonstrację (15 min)';
+            }
+        });
+
+        function _openCalendlyPl() {
+            var modal = document.getElementById('calendly-modal-pl');
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            if (!_pl_calendlyInit) {
+                _pl_calendlyInit = true;
+                var check = function(n) {
+                    if (typeof Calendly !== 'undefined') {
+                        Calendly.initInlineWidget({
+                            url: 'https://calendly.com/alekssve/neuro-educatimo?hide_landing_page_details=1&hide_gdpr_banner=1',
+                            parentElement: document.getElementById('calendly-embed-pl'),
+                            prefill: { email: _pl_leadEmail, name: _pl_leadName }
+                        });
+                    } else if (n > 0) { setTimeout(function() { check(n-1); }, 500); }
+                    else { skipCalendlyPl(); }
+                };
+                check(10);
             }
         }
 
-        // Dołączenie obsługi do zdarzenia "submit"
-        form.addEventListener("submit", handleSubmit);
+        window.addEventListener('message', function(e) {
+            if (e.origin !== 'https://calendly.com') return;
+            if (e.data && e.data.event === 'calendly.event_scheduled') {
+                if (_pl_emailSent) return;
+                _pl_emailSent = true;
+                document.getElementById('calendly-modal-pl').style.display = 'none';
+                document.body.style.overflow = '';
+                fetch('/api/send-lead-email', { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ email:_pl_leadEmail, center_name:_pl_leadName, lang:'pl', booked:true }) }).catch(function(){});
+                _pl_msgDiv.style.color = '';
+                _pl_msgDiv.innerHTML = '<span style="color:#22c55e;font-weight:700;font-size:16px;">✅ Świetnie! Potwierdzenie już w Twojej skrzynce. Do zobaczenia na demo!</span>';
+            }
+        });
+
+        function skipCalendlyPl() {
+            if (_pl_emailSent) return;
+            _pl_emailSent = true;
+            document.getElementById('calendly-modal-pl').style.display = 'none';
+            document.body.style.overflow = '';
+            fetch('/api/send-lead-email', { method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ email:_pl_leadEmail, center_name:_pl_leadName, lang:'pl', booked:false }) }).catch(function(){});
+            _pl_msgDiv.style.color = '';
+            _pl_msgDiv.innerHTML = '<span style="font-weight:700;font-size:15px;">✅ Dziękujemy! Sprawdź e-mail — jest tam link do rezerwacji demo.</span>';
+        }
 
         // Funkcja przełączania widoczności transkrypcji
         function toggleTranscript() {
@@ -946,6 +987,20 @@
       });
     });
     </script>
+
+    <!-- Calendly Modal (pl) -->
+    <div id="calendly-modal-pl" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 16px;">
+      <div style="background:#fff;border-radius:16px;max-width:700px;width:100%;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
+        <div style="background:#1B4F72;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;">
+          <p style="margin:0;color:#fff;font-size:17px;font-weight:700;">📅 Wybierz wygodny czas na 15-minutowe demo</p>
+          <button onclick="skipCalendlyPl()" aria-label="Zamknij" style="background:none;border:none;color:#AED6F1;font-size:26px;cursor:pointer;padding:0 0 0 16px;line-height:1;">✕</button>
+        </div>
+        <div id="calendly-embed-pl" style="min-width:300px;height:660px;"></div>
+        <div style="padding:14px 24px;text-align:center;border-top:1px solid #eee;">
+          <button onclick="skipCalendlyPl()" style="background:none;border:none;color:#888;font-size:14px;cursor:pointer;text-decoration:underline;">→ Wybiorę datę później</button>
+        </div>
+      </div>
+    </div>
 </body>
 
 </html>

@@ -201,6 +201,9 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'quiz_answers') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN quiz_answers JSONB;
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'calendly_booked') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN calendly_booked BOOLEAN DEFAULT NULL;
+                END IF;
             END $$;
 
             CREATE TABLE IF NOT EXISTS articles (
@@ -437,28 +440,40 @@ function _brevoVideoBlock(t) {
 }
 
 // ─── Brevo: письмо лиду после формы лендинга ──────────────────────────────
-function buildLandingEmailHtml(orgName, lang = 'uk') {
+// booked=true  — лид уже выбрал время в Calendly (кнопку не показываем)
+// booked=false — лид пропустил Calendly (показываем кнопку с CTA)
+// booked=null  — старый путь (defer_email не использовался) — показываем кнопку
+function buildLandingEmailHtml(orgName, lang = 'uk', booked = null) {
     const t = BREVO_I18N[lang] || BREVO_I18N.uk;
     const l = t.landing;
     const stepsHtml = l.steps.map(s =>
         `<p style="margin:0 0 6px;font-size:14px;color:#2C3E50;">${s}</p>`
     ).join('');
 
-    const body = `
-  <tr><td style="padding:40px 40px 24px;">
-    <h1 style="margin:0 0 16px;font-size:24px;color:#1B4F72;">${l.greeting(orgName)}</h1>
-    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p1}</p>
-    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p2}</p>
-    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p3}</p>
-  </td></tr>
-  ${_brevoVideoBlock(t)}
+    // Calendly CTA block — не показываем если лид уже забронировал
+    const calendlyBlock = booked === true ? '' : `
   <tr><td style="padding:0 40px 24px;text-align:center;">
     <a href="https://calendly.com/alekssve/neuro-educatimo"
        style="display:inline-block;background:#1B4F72;color:#fff;text-decoration:none;
               padding:16px 36px;border-radius:8px;font-size:16px;font-weight:bold;">
       📅 Записатись на демо
     </a>
+  </td></tr>`;
+
+    // Если лид уже забронировал — подтверждающий текст вместо CTA
+    const p2text = booked === true
+        ? 'Ваш час для демо заброньовано — ми надіслали підтвердження на вашу пошту. До зустрічі!'
+        : l.p2;
+
+    const body = `
+  <tr><td style="padding:40px 40px 24px;">
+    <h1 style="margin:0 0 16px;font-size:24px;color:#1B4F72;">${l.greeting(orgName)}</h1>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p1}</p>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${p2text}</p>
+    <p style="font-size:16px;color:#2C3E50;line-height:1.6;">${l.p3}</p>
   </td></tr>
+  ${_brevoVideoBlock(t)}
+  ${calendlyBlock}
   <tr><td style="padding:0 40px 32px;">
     <table width="100%" style="background:#EBF5FB;border-radius:8px;border-left:4px solid #2E86C1;">
     <tr><td style="padding:20px 24px;">
@@ -561,6 +576,9 @@ app.post('/api/register', parseForm, async (req, res) => {
     const org_type = req.body.org_type || null;
     const students_count = req.body.students_count || null;
     const source = req.body.source || 'landing_form';
+    // defer_email=true: save to DB and send owner email, but hold Brevo lead email
+    // (will be sent later via /api/send-lead-email once Calendly interaction is known)
+    const defer_email = req.body.defer_email === 'true' || req.body.defer_email === true;
     const utm_source   = req.body.utm_source   || '';
     const utm_medium   = req.body.utm_medium   || '';
     const utm_campaign = req.body.utm_campaign || '';
@@ -609,25 +627,66 @@ app.post('/api/register', parseForm, async (req, res) => {
         const langKey = (lang || 'uk').toLowerCase();
         const i18n = BREVO_I18N[langKey] || BREVO_I18N.uk;
         if (source === 'quiz' && quiz_answers) {
+            // Quiz flow — always send immediately
             sendBrevoLeadEmail(
                 email,
                 center_name,
                 i18n.quiz.subject(center_name),
                 buildQuizEmailHtml(center_name, quiz_answers, langKey)
             );
-        } else {
+        } else if (!defer_email) {
+            // Landing form without Calendly flow — send immediately (legacy)
             sendBrevoLeadEmail(
                 email,
                 center_name,
                 i18n.landing.subject(center_name),
                 buildLandingEmailHtml(center_name, langKey)
             );
+        } else {
+            console.log(`Registration: Brevo lead email deferred for ${email} (Calendly flow)`);
         }
 
         return res.status(201).json({ email, center_name });
     }
     console.log('Registration: failed (DB and email both failed)');
     res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// --- Calendly: отправить письмо лиду после выбора/пропуска Calendly ---
+// Вызывается клиентом после того как лид либо забронировал время, либо нажал "пропустить"
+app.post('/api/send-lead-email', async (req, res) => {
+    const { email, center_name, lang, booked } = req.body;
+    if (!email || !center_name) {
+        return res.status(400).json({ error: 'email and center_name are required' });
+    }
+    const langKey = (lang || 'uk').toLowerCase();
+    const i18n = BREVO_I18N[langKey] || BREVO_I18N.uk;
+    const isBooked = booked === true || booked === 'true';
+
+    try {
+        // Обновить флаг в БД (best-effort)
+        await pool.query(
+            `UPDATE landing_waitlist SET calendly_booked = $1
+             WHERE email = $2 AND calendly_booked IS NULL
+             ORDER BY created_at DESC
+             LIMIT 1`,
+            [isBooked, email]
+        ).catch(err => console.error('calendly_booked update error:', err.message));
+
+        // Отправить письмо лиду
+        await sendBrevoLeadEmail(
+            email,
+            center_name,
+            i18n.landing.subject(center_name),
+            buildLandingEmailHtml(center_name, langKey, isBooked)
+        );
+
+        console.log(`Lead email sent: email=${email} booked=${isBooked}`);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('send-lead-email error:', err.message || err);
+        res.status(500).json({ error: 'Failed to send email' });
+    }
 });
 
 // --- Blog API ---
