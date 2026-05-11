@@ -625,6 +625,104 @@ async function sendBrevoLeadEmail(toEmail, toName, subject, html) {
 
 const CALENDLY_DEMO_URL = 'https://calendly.com/alekssve/neuro-educatimo';
 
+// ─── Notion CRM ─────────────────────────────────────────────────────────────
+
+async function notionRequest(method, path, body) {
+    const token = process.env.NOTION_TOKEN;
+    if (!token) return null;
+    try {
+        const resp = await fetch(`https://api.notion.com/v1${path}`, {
+            method,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Notion-Version': '2022-06-28',
+                'Content-Type': 'application/json'
+            },
+            body: body ? JSON.stringify(body) : undefined
+        });
+        const data = await resp.json();
+        if (!resp.ok) { console.error(`Notion ${method} ${path} error:`, data?.message); return null; }
+        return data;
+    } catch (err) {
+        console.error(`Notion request exception:`, err.message);
+        return null;
+    }
+}
+
+async function findNotionPageByEmail(email) {
+    const dbId = process.env.NOTION_CRM_DB_ID;
+    if (!dbId) return null;
+    const data = await notionRequest('POST', `/databases/${dbId}/query`, {
+        filter: { property: 'Email', email: { equals: email } },
+        page_size: 1
+    });
+    return data?.results?.[0]?.id || null;
+}
+
+// Создать нового лида в CRM после регистрации на лендинге
+async function createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign }) {
+    const dbId = process.env.NOTION_CRM_DB_ID;
+    if (!dbId || !process.env.NOTION_TOKEN) return;
+    const formParts = [
+        org_type        ? `Тип орг.: ${org_type}` : null,
+        students_count  ? `Учеников: ${students_count}` : null,
+        lang            ? `Язык: ${lang}` : null,
+        utm_source      ? `UTM source: ${utm_source}` : null,
+        utm_medium      ? `UTM medium: ${utm_medium}` : null,
+        utm_campaign    ? `UTM campaign: ${utm_campaign}` : null,
+    ].filter(Boolean).join('\n');
+    const result = await notionRequest('POST', '/pages', {
+        parent: { database_id: dbId },
+        properties: {
+            'Организация':      { title: [{ text: { content: center_name || '' } }] },
+            'Email':            { email: email || null },
+            'Телефон':          { phone_number: phone || null },
+            'Данные из формы':  { rich_text: [{ text: { content: formParts } }] },
+            'Этап':             { status: { name: 'Новый' } },
+            'След шаг':         { select: { name: 'Назначить демо' } },
+            'Канал коммуникации': { select: { name: '@' } },
+        }
+    });
+    if (result) console.log(`Notion: lead created email=${email} page=${result.id}`);
+}
+
+// Обновить дату демо когда лид забронировал Calendly
+async function updateNotionLeadDemo(email, demoDate) {
+    const pageId = await findNotionPageByEmail(email);
+    if (!pageId) return;
+    const result = await notionRequest('PATCH', `/pages/${pageId}`, {
+        properties: {
+            'Дата демо': { date: { start: new Date(demoDate).toISOString(), is_datetime: true } },
+            'Этап':      { status: { name: 'Демо' } },
+            'След шаг':  { select: { name: 'Провести демо' } },
+        }
+    });
+    if (result) console.log(`Notion: demo updated email=${email}`);
+}
+
+// Обновить канал коммуникации на ТГ когда лид подключил бота
+async function updateNotionLeadTelegram(email) {
+    const pageId = await findNotionPageByEmail(email);
+    if (!pageId) return;
+    await notionRequest('PATCH', `/pages/${pageId}`, {
+        properties: { 'Канал коммуникации': { select: { name: 'ТГ' } } }
+    });
+}
+
+// Дописать диалог бота в заметки страницы лида
+async function appendNotionConversation(email, userMessage, botReply) {
+    const pageId = await findNotionPageByEmail(email);
+    if (!pageId) return;
+    const now = new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' });
+    await notionRequest('PATCH', `/blocks/${pageId}/children`, {
+        children: [
+            { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: `[${now}] 👤 ${userMessage}` } }] } },
+            { object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: `🤖 ${botReply}` } }] } },
+        ]
+    });
+    console.log(`Notion: conversation appended email=${email}`);
+}
+
 // Верификация подписи от Telegram Login Widget (HMAC-SHA256)
 function verifyTelegramAuth(data) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -765,6 +863,12 @@ app.post('/api/register', parseForm, async (req, res) => {
             );
         } else {
             console.log(`Registration: Brevo lead email deferred for ${email} (Calendly flow)`);
+        }
+
+        // Fire-and-forget: создать лида в Notion CRM
+        if (dbOk) {
+            createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign })
+                .catch(err => console.error('Notion createLead error:', err.message));
         }
 
         return res.status(201).json({ email, center_name });
@@ -920,6 +1024,10 @@ app.post('/api/store-calendly-event', async (req, res) => {
             }
             console.log(`store-calendly-event: reminders scheduled for tg_id=${tgId} demo=${startTime}`);
         }
+
+        // Fire-and-forget: обновить дату демо в Notion CRM
+        updateNotionLeadDemo(email, startTime)
+            .catch(err => console.error('Notion updateDemo error:', err.message));
 
         console.log(`Calendly event stored: email=${email} start_time=${startTime}`);
         res.json({ ok: true, start_time: startTime });
@@ -1128,6 +1236,7 @@ app.post('/api/tg-webhook', async (req, res) => {
             let leadLang = 'uk';
             let leadInfo = '';
             let centerName = '';
+            let leadEmail = null;
             try {
                 const leadRow = await pool.query(
                     `SELECT email, center_name, lang, calendly_start_time FROM landing_waitlist
@@ -1138,6 +1247,7 @@ app.post('/api/tg-webhook', async (req, res) => {
                     const l = leadRow.rows[0];
                     centerName = l.center_name || firstName || '';
                     leadLang = (l.lang || 'uk').toLowerCase().replace('cz','cs').replace('ua','uk');
+                    leadEmail = l.email || null;
                     const booked = l.calendly_start_time ? '✅ записан на демо' : '⏳ не записан';
                     leadInfo = `\n👤 <b>${centerName}</b> | ${l.email} | lang: ${l.lang || '?'} | ${booked}`;
                     if (username) leadInfo += ` | @${username}`;
@@ -1251,6 +1361,12 @@ SaaS-платформа для образовательных центров: о
                 );
             } catch (_) {}
 
+            // Fire-and-forget: добавить диалог в Notion CRM
+            if (leadEmail) {
+                appendNotionConversation(leadEmail, text, aiReply)
+                    .catch(err => console.error('Notion appendConversation error:', err.message));
+            }
+
             // Отправить AI-ответ лиду
             await sendTelegramMessage(tgId, aiReply);
 
@@ -1292,6 +1408,10 @@ SaaS-платформа для образовательных центров: о
              WHERE id = $4`,
             [tgId, username, firstName, lead.id]
         );
+
+        // Fire-and-forget: обновить канал коммуникации на ТГ в Notion CRM
+        updateNotionLeadTelegram(lead.email)
+            .catch(err => console.error('Notion updateTelegram error:', err.message));
 
         // Отправить приветственное сообщение
         const welcomeText = getTgWelcomeText(langKey, firstName, lead.center_name, isBooked);
