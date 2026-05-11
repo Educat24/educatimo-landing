@@ -1103,6 +1103,23 @@ app.post('/api/tg-webhook', async (req, res) => {
         // Обрабатываем /start TOKEN
         const startMatch = text.match(/^\/start\s+([a-f0-9]{32})$/);
 
+        // /start без токена — кто-то открыл бота напрямую из поиска
+        if (text.trim() === '/start') {
+            const coldMsgs = {
+                uk: `👋 Привіт! Я помічник Neuro.Educatimo.\n\nNeuro.Educatimo — платформа для освітніх центрів: когнітивне тестування дітей 5–12 років і наочні PDF-звіти для батьків під вашим брендом.\n\nЩоб дізнатись більше або записатись на демо — залиште заявку на сайті:\n🌐 https://www.neuro.educatimo.com\n\nЄ питання? Пишіть тут — відповім! 💬`,
+                ru: `👋 Привет! Я помощник Neuro.Educatimo.\n\nNeuro.Educatimo — платформа для образовательных центров: когнитивное тестирование детей 5–12 лет и наглядные PDF-отчёты для родителей под вашим брендом.\n\nЧтобы узнать больше или записаться на демо — оставьте заявку на сайте:\n🌐 https://www.neuro.educatimo.com\n\nЕсть вопросы? Пишите здесь — отвечу! 💬`,
+                en: `👋 Hi! I'm the Neuro.Educatimo assistant.\n\nNeuro.Educatimo is a platform for educational centres: cognitive testing for children aged 5–12 and clear PDF reports for parents under your brand.\n\nTo learn more or book a demo — leave a request on our website:\n🌐 https://www.neuro.educatimo.com\n\nAny questions? Write here — I'll answer! 💬`,
+            };
+            // Попробуем определить язык по language_code из Telegram
+            const tgLang = msg.from?.language_code || '';
+            let coldLang = 'uk';
+            if (tgLang.startsWith('ru')) coldLang = 'ru';
+            else if (tgLang.startsWith('en')) coldLang = 'en';
+            await sendTelegramMessage(tgId, coldMsgs[coldLang] || coldMsgs.uk);
+            console.log(`TG cold start: tg_id=${tgId} lang=${coldLang}`);
+            return;
+        }
+
         // Свободное сообщение от лида (не /start) — AI-ответ + уведомление админу
         if (!startMatch) {
             const adminId = process.env.TELEGRAM_ADMIN_ID;
