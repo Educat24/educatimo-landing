@@ -1175,30 +1175,36 @@ SaaS-платформа для образовательных центров: о
                 timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit',
                 day: '2-digit', month: '2-digit'
             });
+            const remind15 = new Date(demoDate.getTime() - 15 * 60 * 1000);
             const REMINDER_MSGS = {
                 uk: {
                     h24: `🗓 Нагадування!\n\nЗавтра о ${timeStr} — ваше демо Neuro.Educatimo.\n\nНічого готувати не потрібно. До зустрічі!`,
                     h1: `⏰ Через 1 годину — ваше демо!\n\nЧас: ${timeStr}\n\nДо зустрічі! 🚀`,
+                    m15: `🔔 До демо залишилось 15 хвилин!\n\nЧас: ${timeStr}\n\nЧекаємо на вас! 👋`,
                     after: `👋 Як пройшло демо? Сподіваємось, всі питання закрили!\n\nВже визначились з датою старту триалу? Будемо раді запустити вас якнайшвидше 🚀`,
                 },
                 ru: {
                     h24: `🗓 Напоминание!\n\nЗавтра в ${timeStr} — ваше демо Neuro.Educatimo.\n\nНичего готовить не нужно. До встречи!`,
                     h1: `⏰ Через 1 час — ваше демо!\n\nВремя: ${timeStr}\n\nДо встречи! 🚀`,
+                    m15: `🔔 До демо осталось 15 минут!\n\nВремя: ${timeStr}\n\nЖдём вас! 👋`,
                     after: `👋 Как прошло демо? Надеемся, все вопросы закрыли!\n\nУже определились с датой старта триала? Будем рады запустить вас как можно скорее 🚀`,
                 },
                 en: {
                     h24: `🗓 Reminder!\n\nTomorrow at ${timeStr} — your Neuro.Educatimo demo.\n\nNothing to prepare. See you there!`,
                     h1: `⏰ In 1 hour — your demo!\n\nTime: ${timeStr}\n\nSee you! 🚀`,
+                    m15: `🔔 15 minutes until your demo!\n\nTime: ${timeStr}\n\nWe're waiting for you! 👋`,
                     after: `👋 How did the demo go? Hope we answered all your questions!\n\nHave you decided on a trial start date? We'd love to get you started as soon as possible 🚀`,
                 },
                 pl: {
                     h24: `🗓 Przypomnienie!\n\nJutro o ${timeStr} — Twoje demo Neuro.Educatimo.\n\nNic nie trzeba przygotowywać. Do zobaczenia!`,
                     h1: `⏰ Za 1 godzinę — Twoje demo!\n\nGodzina: ${timeStr}\n\nDo zobaczenia! 🚀`,
+                    m15: `🔔 Za 15 minut Twoje demo!\n\nGodzina: ${timeStr}\n\nCzekamy na Ciebie! 👋`,
                     after: `👋 Jak minęło demo? Mamy nadzieję, że odpowiedzieliśmy na wszystkie pytania!\n\nCzy zdecydowałeś/-aś już o dacie startu trialu? Chętnie uruchomimy Cię jak najszybciej 🚀`,
                 },
                 cs: {
                     h24: `🗓 Připomínka!\n\nZítra v ${timeStr} — vaše demo Neuro.Educatimo.\n\nNení třeba nic připravovat. Na shledanou!`,
                     h1: `⏰ Za 1 hodinu — vaše demo!\n\nČas: ${timeStr}\n\nNa shledanou! 🚀`,
+                    m15: `🔔 Za 15 minut vaše demo!\n\nČas: ${timeStr}\n\nTěšíme se na vás! 👋`,
                     after: `👋 Jak proběhlo demo? Doufáme, že jsme zodpověděli všechny otázky!\n\nUž jste se rozhodli na datum zahájení trialu? Rádi vás spustíme co nejdříve 🚀`,
                 },
             };
@@ -1213,6 +1219,12 @@ SaaS-платформа для образовательных центров: о
                 await pool.query(
                     `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
                     [tgId, remind1.toISOString(), rm.h1]
+                );
+            }
+            if (remind15 > new Date()) {
+                await pool.query(
+                    `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                    [tgId, remind15.toISOString(), rm.m15]
                 );
             }
             // Пост-демо: через 1.5 часа после начала
