@@ -240,6 +240,14 @@ const initDb = async () => {
                 END IF;
             END $$;
 
+            CREATE TABLE IF NOT EXISTS tg_conversations (
+                id SERIAL PRIMARY KEY,
+                telegram_id BIGINT NOT NULL,
+                role VARCHAR(10) NOT NULL,
+                content TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
             CREATE TABLE IF NOT EXISTS articles (
                 id SERIAL PRIMARY KEY,
                 slug VARCHAR(255) UNIQUE NOT NULL,
@@ -1163,7 +1171,23 @@ SaaS-платформа для образовательных центров: о
 5. Отвечай коротко — 2–5 предложений. Без лишних вступлений и прощаний
 6. Не представляйся как AI — ты просто помощник Neuro.Educatimo`;
 
-            // Запрос к Claude Haiku
+            // Загрузить историю разговора (последние 10 сообщений)
+            let history = [];
+            try {
+                const histRows = await pool.query(
+                    `SELECT role, content FROM tg_conversations
+                     WHERE telegram_id = $1
+                     ORDER BY created_at DESC LIMIT 10`,
+                    [tgId]
+                );
+                // Переворачиваем — от старых к новым
+                history = histRows.rows.reverse().map(r => ({ role: r.role, content: r.content }));
+            } catch (_) {}
+
+            // Добавляем текущее сообщение в конец
+            const messages = [...history, { role: 'user', content: text }];
+
+            // Запрос к Claude Haiku с историей
             let aiReply = null;
             const anthropicKey = process.env.ANTHROPIC_API_KEY;
             if (anthropicKey && text) {
@@ -1179,7 +1203,7 @@ SaaS-платформа для образовательных центров: о
                             model: 'claude-haiku-4-5',
                             max_tokens: 400,
                             system: systemPrompt,
-                            messages: [{ role: 'user', content: text }]
+                            messages
                         })
                     });
                     const aiData = await aiResp.json();
@@ -1202,6 +1226,14 @@ SaaS-платформа для образовательных центров: о
                 aiReply = fallbacks[leadLang] || fallbacks.uk;
             }
 
+            // Сохранить сообщение лида и ответ бота в историю
+            try {
+                await pool.query(
+                    `INSERT INTO tg_conversations (telegram_id, role, content) VALUES ($1, 'user', $2), ($1, 'assistant', $3)`,
+                    [tgId, text, aiReply]
+                );
+            } catch (_) {}
+
             // Отправить AI-ответ лиду
             await sendTelegramMessage(tgId, aiReply);
 
@@ -1214,7 +1246,7 @@ SaaS-платформа для образовательных центров: о
                 await sendTelegramMessage(adminId, fwdText);
             }
 
-            console.log(`TG AI reply: tg_id=${tgId} lang=${leadLang} q="${text.slice(0,50)}"`);
+            console.log(`TG AI reply: tg_id=${tgId} lang=${leadLang} history=${history.length} q="${text.slice(0,50)}"`);
             return;
         }
 
