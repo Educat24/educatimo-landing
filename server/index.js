@@ -231,8 +231,14 @@ const initDb = async () => {
                 send_at TIMESTAMPTZ NOT NULL,
                 message TEXT NOT NULL,
                 sent BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMPTZ DEFAULT NOW()
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                type VARCHAR(50) DEFAULT 'reminder'
             );
+            DO $$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'type') THEN
+                    ALTER TABLE scheduled_messages ADD COLUMN type VARCHAR(50) DEFAULT 'reminder';
+                END IF;
+            END $$;
 
             CREATE TABLE IF NOT EXISTS articles (
                 id SERIAL PRIMARY KEY,
@@ -831,6 +837,82 @@ app.post('/api/store-calendly-event', async (req, res) => {
             [event_uri, startTime, email]
         );
 
+        // Якщо лід вже підключив бота — скасувати follow-up "не записався" і запланувати нагадування
+        const leadRow = await pool.query(
+            `SELECT telegram_id, lang FROM landing_waitlist
+             WHERE email = $1 AND telegram_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+            [email]
+        );
+        if (leadRow.rows.length) {
+            const tgId = leadRow.rows[0].telegram_id;
+            const langKey = (leadRow.rows[0].lang || 'uk').toLowerCase().replace('cz','cs').replace('ua','uk');
+
+            // Скасувати незвідправлені follow-up "не записався"
+            await pool.query(
+                `UPDATE scheduled_messages SET sent = TRUE
+                 WHERE telegram_id = $1 AND type = 'followup_not_booked' AND sent = FALSE`,
+                [tgId]
+            );
+
+            // Запланувати нагадування про демо
+            const demoDate = new Date(startTime);
+            const remind24 = new Date(demoDate.getTime() - 24 * 60 * 60 * 1000);
+            const remind1  = new Date(demoDate.getTime() - 60 * 60 * 1000);
+            const remind15 = new Date(demoDate.getTime() - 15 * 60 * 1000);
+            const afterDemo = new Date(demoDate.getTime() + 90 * 60 * 1000);
+            const timeStr = demoDate.toLocaleString('uk-UA', {
+                timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit'
+            });
+            const MSGS = {
+                uk: {
+                    h24: `🗓 Нагадування!\n\nЗавтра о ${timeStr} — ваше демо Neuro.Educatimo.\n\nНічого готувати не потрібно. До зустрічі!`,
+                    h1:  `⏰ Через 1 годину — ваше демо!\n\nЧас: ${timeStr}\n\nДо зустрічі! 🚀`,
+                    m15: `🔔 До демо залишилось 15 хвилин!\n\nЧас: ${timeStr}\n\nЧекаємо на вас! 👋`,
+                    after: `👋 Як пройшло демо? Сподіваємось, всі питання закрили!\n\nВже визначились з датою старту триалу? Будемо раді запустити вас якнайшвидше 🚀`,
+                },
+                ru: {
+                    h24: `🗓 Напоминание!\n\nЗавтра в ${timeStr} — ваше демо Neuro.Educatimo.\n\nНичего готовить не нужно. До встречи!`,
+                    h1:  `⏰ Через 1 час — ваше демо!\n\nВремя: ${timeStr}\n\nДо встречи! 🚀`,
+                    m15: `🔔 До демо осталось 15 минут!\n\nВремя: ${timeStr}\n\nЖдём вас! 👋`,
+                    after: `👋 Как прошло демо? Надеемся, все вопросы закрыли!\n\nУже определились с датой старта триала? Будем рады запустить вас как можно скорее 🚀`,
+                },
+                en: {
+                    h24: `🗓 Reminder!\n\nTomorrow at ${timeStr} — your Neuro.Educatimo demo.\n\nNothing to prepare. See you there!`,
+                    h1:  `⏰ In 1 hour — your demo!\n\nTime: ${timeStr}\n\nSee you! 🚀`,
+                    m15: `🔔 15 minutes until your demo!\n\nTime: ${timeStr}\n\nWe're waiting for you! 👋`,
+                    after: `👋 How did the demo go? Hope we answered all your questions!\n\nHave you decided on a trial start date? We'd love to get you started as soon as possible 🚀`,
+                },
+                pl: {
+                    h24: `🗓 Przypomnienie!\n\nJutro o ${timeStr} — Twoje demo Neuro.Educatimo.\n\nNic nie trzeba przygotowywać. Do zobaczenia!`,
+                    h1:  `⏰ Za 1 godzinę — Twoje demo!\n\nGodzina: ${timeStr}\n\nDo zobaczenia! 🚀`,
+                    m15: `🔔 Za 15 minut Twoje demo!\n\nGodzina: ${timeStr}\n\nCzekamy na Ciebie! 👋`,
+                    after: `👋 Jak minęło demo? Mamy nadzieję, że odpowiedzieliśmy na wszystkie pytania!\n\nCzy zdecydowałeś/-aś już o dacie startu trialu? Chętnie uruchomimy Cię jak najszybciej 🚀`,
+                },
+                cs: {
+                    h24: `🗓 Připomínka!\n\nZítra v ${timeStr} — vaše demo Neuro.Educatimo.\n\nNení třeba nic připravovat. Na shledanou!`,
+                    h1:  `⏰ Za 1 hodinu — vaše demo!\n\nČas: ${timeStr}\n\nNa shledanou! 🚀`,
+                    m15: `🔔 Za 15 minut vaše demo!\n\nČas: ${timeStr}\n\nTěšíme se na vás! 👋`,
+                    after: `👋 Jak proběhlo demo? Doufáme, že jsme zodpověděli všechny otázky!\n\nUž jste se rozhodli na datum zahájení trialu? Rádi vás spustíme co nejdříve 🚀`,
+                },
+            };
+            const m = MSGS[langKey] || MSGS.uk;
+            const inserts = [
+                [tgId, remind24, m.h24],
+                [tgId, remind1,  m.h1],
+                [tgId, remind15, m.m15],
+                [tgId, afterDemo, m.after],
+            ];
+            for (const [id, time, msg] of inserts) {
+                if (time > new Date()) {
+                    await pool.query(
+                        `INSERT INTO scheduled_messages (telegram_id, send_at, message) VALUES ($1, $2, $3)`,
+                        [id, time.toISOString(), msg]
+                    );
+                }
+            }
+            console.log(`store-calendly-event: reminders scheduled for tg_id=${tgId} demo=${startTime}`);
+        }
+
         console.log(`Calendly event stored: email=${email} start_time=${startTime}`);
         res.json({ ok: true, start_time: startTime });
     } catch (err) {
@@ -1236,6 +1318,44 @@ SaaS-платформа для образовательных центров: о
                 );
             }
             console.log(`TG webhook: reminders scheduled for tg_id=${tgId} demo=${lead.calendly_start_time}`);
+        }
+
+        // Лид подключил бота но не забронировал — два follow-up: через 24ч и 72ч
+        if (!isBooked) {
+            const FOLLOWUP_MSGS = {
+                uk: {
+                    d1: `👋 Ви ще не записались на демо Neuro.Educatimo.\n\nЦе займе 1 хвилину — подивіться на платформу зсередини і вирішіть, чи підходить вона вашому центру:\n📅 ${CALENDLY_DEMO_URL}`,
+                    d3: `🙌 Ми все ще раді познайомитись з вами на демо!\n\nБагато центрів після першого погляду на платформу вирішують почати відразу. Запишіться — це безкоштовно:\n📅 ${CALENDLY_DEMO_URL}`,
+                },
+                ru: {
+                    d1: `👋 Вы ещё не записались на демо Neuro.Educatimo.\n\nЭто займёт 1 минуту — посмотрите на платформу изнутри и решите, подходит ли она вашему центру:\n📅 ${CALENDLY_DEMO_URL}`,
+                    d3: `🙌 Мы всё ещё рады познакомиться с вами на демо!\n\nМногие центры после первого взгляда на платформу решают начать сразу. Запишитесь — это бесплатно:\n📅 ${CALENDLY_DEMO_URL}`,
+                },
+                en: {
+                    d1: `👋 You haven't booked a Neuro.Educatimo demo yet.\n\nIt takes 1 minute — see the platform from the inside and decide if it's right for your centre:\n📅 ${CALENDLY_DEMO_URL}`,
+                    d3: `🙌 We'd still love to meet you at a demo!\n\nMany centres decide to start right after their first look. Book now — it's free:\n📅 ${CALENDLY_DEMO_URL}`,
+                },
+                pl: {
+                    d1: `👋 Jeszcze nie zarezerwowałeś/-aś demo Neuro.Educatimo.\n\nTo tylko 1 minuta — zobacz platformę od środka i zdecyduj, czy pasuje do Twojego centrum:\n📅 ${CALENDLY_DEMO_URL}`,
+                    d3: `🙌 Nadal chętnie się poznamy na demo!\n\nWiele centrów decyduje się zacząć od razu po pierwszym spojrzeniu. Zarezerwuj — to bezpłatne:\n📅 ${CALENDLY_DEMO_URL}`,
+                },
+                cs: {
+                    d1: `👋 Ještě jste si nezarezervovali demo Neuro.Educatimo.\n\nZabere to jen 1 minutu — podívejte se na platformu zevnitř a rozhodněte, zda se hodí pro vaše centrum:\n📅 ${CALENDLY_DEMO_URL}`,
+                    d3: `🙌 Stále rádi se s vámi setkáme na demu!\n\nMnoho center se rozhodne začít hned po prvním pohledu. Zarezervujte si — je to zdarma:\n📅 ${CALENDLY_DEMO_URL}`,
+                },
+            };
+            const fm = FOLLOWUP_MSGS[langKey] || FOLLOWUP_MSGS.uk;
+            const followup24 = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const followup72 = new Date(Date.now() + 72 * 60 * 60 * 1000);
+            await pool.query(
+                `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'followup_not_booked')`,
+                [tgId, followup24.toISOString(), fm.d1]
+            );
+            await pool.query(
+                `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'followup_not_booked')`,
+                [tgId, followup72.toISOString(), fm.d3]
+            );
+            console.log(`TG webhook: follow-up messages scheduled for unbooked tg_id=${tgId}`);
         }
 
         console.log(`TG webhook: connected tg_id=${tgId} email=${lead.email} lang=${langKey}`);
