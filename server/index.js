@@ -238,6 +238,12 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'type') THEN
                     ALTER TABLE scheduled_messages ADD COLUMN type VARCHAR(50) DEFAULT 'reminder';
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'reply_markup') THEN
+                    ALTER TABLE scheduled_messages ADD COLUMN reply_markup JSONB DEFAULT NULL;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'related_send_at') THEN
+                    ALTER TABLE scheduled_messages ADD COLUMN related_send_at TIMESTAMPTZ DEFAULT NULL;
+                END IF;
             END $$;
 
             CREATE TABLE IF NOT EXISTS tg_conversations (
@@ -739,14 +745,16 @@ function verifyTelegramAuth(data) {
 }
 
 // Отправить сообщение через Telegram Bot API
-async function sendTelegramMessage(chatId, text) {
+async function sendTelegramMessage(chatId, text, replyMarkup = null) {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token) { console.warn('TG: TELEGRAM_BOT_TOKEN not set'); return; }
     try {
+        const payload = { chat_id: chatId, text, parse_mode: 'HTML' };
+        if (replyMarkup) payload.reply_markup = replyMarkup;
         const resp = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+            body: JSON.stringify(payload)
         });
         const json = await resp.json();
         if (!json.ok) console.error('TG sendMessage error:', json.description);
@@ -754,6 +762,282 @@ async function sendTelegramMessage(chatId, text) {
     } catch (err) {
         console.error('TG sendMessage exception:', err.message);
     }
+}
+
+async function answerCallbackQuery(callbackQueryId, text = '') {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token) return;
+    try {
+        await fetch(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ callback_query_id: callbackQueryId, text })
+        });
+    } catch (_) {}
+}
+
+
+// ─── Trial onboarding: 7-day sequence ───────────────────────────────────────
+const PRICING_URL = 'https://www.neuro.educatimo.com/pricing';
+const TRIAL_CALENDLY_URL = 'https://calendly.com/alekssve/neuro-educatimo';
+
+const TRIAL_MESSAGES = {
+    uk: {
+        day0: `🎉 Вітаємо! Ваш триал Neuro.Educatimo активовано — 7 днів повного доступу.
+
+Чому один учень схоплює все з першого разу, а інший — старається, але не може запам'ятати? Чому хтось постійно крутиться і відволікається, навіть коли хоче слухати? Педагог бачить це щодня, але далеко не завжди розуміє причину. І це нормально — без об'єктивних даних тут важко щось стверджувати.
+
+А батьки? Вони теж не розуміють. І не завжди вірять словам педагога — навіть якщо дитина справді прогресує. Не тому що не довіряють вам. Просто людський мозок краще сприймає цифри, ніж враження.
+
+Neuro.Educatimo вирішує обидві ці проблеми: після тестування педагог бачить об'єктивний профіль когнітивного розвитку кожної дитини — увага, пам'ять, логіка, координація. А батьки отримують PDF-звіт з результатами та рекомендаціями під брендом вашого центру.
+
+Розуміння дитини + довіра батьків = менший відтік клієнтів = більший дохід центру.
+
+За 7 днів ви відчуєте це самі. Починаємо 👇
+
+Крок 1 — Увійдіть в кабінет
+📧 Перевірте пошту — ми надіслали листа з посиланням для створення пароля.
+Якщо пароль вже створено — входьте одразу: https://neuro.educatimo.com/dashboard
+
+Крок 2 — Заповніть профіль організації
+Зайдіть в розділ ⚙️ «Налаштування». Заповніть:
+- Назву центру, адресу, контактні дані, сайт, соцмережі
+- Логотип — він з'явиться на кожному PDF-звіті для батьків
+- Блоки «Методика» і «Інструменти» — опишіть все що ви застосовуєте у своїй роботі. Саме ці дані використовує AI-помічник при складанні рекомендацій для батьків
+
+Крок 3 — Перегляньте розділ Допомога
+В розділі ❓ «Допомога» два підрозділи:
+- Підтримка — звернення та питання до нас
+- Довідкові матеріали — покрокові інструкції з усіх функцій платформи
+
+Завтра розпочнемо перше тестування 🚀`,
+
+        nudge0: `Вдалося зайти в кабінет і заповнити профіль організації? Якщо щось незрозуміло — напишіть тут, допоможемо одразу 🙌`,
+
+        day1: `🧪 День 1. Перше тестування — зробіть це самі, без учнів.
+
+На демо ви вже бачили як це працює. Сьогодні спробуєте самі — це займе 20-30 хвилин.
+
+Крок 1 — Додайте тестових учнів
+Зайдіть в розділ «Учні» → натисніть «Новий учень». Додайте 2-3 учні (можна вигаданих: Тестовий Учень 1, 2, 3).
+⚠️ При створенні обов'язково поставте галочку «is_test_label» — це позначить їх як тестових і вони не потраплять в основну статистику.
+Після цього об'єднайте їх у групу — вона знадобиться завтра.
+
+Крок 2 — Перегляньте відео
+5 хвилин інструкції перед першим запуском.
+📹 https://youtu.be/SAKHpfB13uw
+
+Крок 3 — Зіграйте одразу дві ролі
+Відкрийте платформу на комп'ютері як тренер і натисніть кнопку «Онлайн тестування». Оберіть режим «Індивідуально», налаштуйте сесію: вікова категорія і мова тестування.
+Далі підключіть пристрій учня — відскануйте QR-код або скопіюйте посилання і відкрийте його на смартфоні чи в окремій вкладці браузера. Тепер ви одночасно тренер і учень 📱💻
+Детальні покрокові інструкції є в розділі ❓ «Допомога» → «Довідкові матеріали».
+
+Крок 4 — Подивіться результат
+Після завершення зайдіть на сторінку «Сесії тестування» → синя стрілка справа → завантажте PDF-звіт. Це саме той документ, який побачать батьки.
+Тут же натисніть «Згенерувати інтерпретацію» — AI підготує розгорнутий текст з аналізом результатів 👀`,
+
+        nudge1: `Вдалося побути і тренером, і учнем? 😄 Дійшли до AI-інтерпретації? Якщо застряли — відео: https://youtu.be/SAKHpfB13uw або пишіть сюди 💪`,
+
+        day2: `🤖 День 2. Групове тестування — один педагог, цілий клас.
+
+Вчора ви побачили як працює індивідуальний тест. Сьогодні — груповий режим. Це те саме, але одночасно для всіх учнів у групі.
+
+Крок 1 — Перегляньте відео
+📹 https://youtu.be/uJUep27P_QM
+
+Крок 2 — Запустіть груповий тест
+Натисніть кнопку «Онлайн тестування» → оберіть «Група (Клас)» → оберіть свою тестову групу і далі слідуйте підказкам на екрані. Там само знайдете інструкції для вчителя на кожному кроці.
+
+Крок 3 — Підключіть "учнів"
+На початку тесту з'явиться посилання для учнів. Відкрийте його в додаткових вкладках браузера, на смартфоні або планшеті — кожна вкладка або пристрій це окремий учень у вашій групі.
+Так ви побачите одразу обидва екрани: що бачить тренер і що бачить дитина 👁
+
+Крок 4 — Подивіться зведений результат
+Після завершення сесії ви побачите порівняльну таблицю по всіх учнях — хто впорався добре, хто потребує підтримки, одним поглядом.
+На сторінці «Сесії тестування» завантажте PDF-звіт кожного учня окремо — синя стрілка справа навпроти кожної сесії.`,
+
+        nudge2: `Запускали груповий тест? Підключення через посилання займає хвилину — і картина по всій групі одразу. Якщо не виходить — напишіть 🙌`,
+
+        day3: `💡 День 3. Як платформа окупає себе — і приносить додатковий дохід.
+
+Більшість навчальних центрів стикаються з однією і тією ж проблемою: батьки платять за заняття, але не розуміють за що саме. Прогрес дитини невидимий — і при першій же нагоді вони йдуть до конкурента.
+
+Neuro.Educatimo змінює цю логіку.
+
+Довіра → утримання клієнтів
+Батьки бачать PDF-звіт з цифрами, графіками і рекомендаціями. Прогрес стає видимим. Коли є що показати — набагато важче сказати "ми йдемо".
+
+Диференціація від конкурентів
+Більшість центрів не роблять об'єктивну діагностику. Ваш центр робить — і це відразу виділяє вас на ринку.
+
+Нова послуга = додатковий дохід
+Ми рекомендуємо оцінювати одну діагностичну сесію в 500–1500 грн залежно від рівня доходів у вашому місті.
+
+💼 Basic — $50/міс:
+5 діагностик × 500 грн = 2 500 грн → підписка окупається, залишається прибуток
+
+📈 Plus — $75/міс:
+10 діагностик × 800 грн = 8 000 грн → підписка ~3 000 грн, чистий прибуток ~5 000 грн
+
+🚀 Ultra — $120/міс:
+2 групових скринінги × 10 дітей × 500 грн = 10 000 грн → підписка ~4 800 грн, чистий прибуток ~5 200 грн
+
+Груповий скринінг — найвигідніший варіант: один запуск на цілий клас вже закриває підписку.
+Вигідніше купувати пакетами — там додаткові знижки.
+👉 https://www.neuro.educatimo.com/pricing
+
+Підписка окупається вже з перших сесій 💰
+Завтра покажемо тренажери — що робити із зонами росту.`,
+
+        nudge3: `Цікаво як впровадити діагностику як окрему послугу саме у вашому центрі? Напишіть — обговоримо під ваш формат 🙌`,
+
+        day4: `🎯 День 4. Тренажери — що робити із зонами росту.
+
+Тестування показало результати. Але діагностика — це лише перший крок. Головне питання: що далі?
+
+Зайдіть в розділ «Тренажери» і подивіться що там є:
+
+🧠 Таблиці Шульте — концентрація та переключення уваги
+📐 Графічний диктант — просторове мислення і моторика
+🎯 Rally Light — зорово-моторна координація (для дітей 5-6 років)
+🔢 Числові ряди — тренажер слухової пам'яті
+
+Розділ тренажерів постійно поповнюється — нові модулі вже в розробці.
+
+Тренажери платформи не замінюють вашу методику — вони її доповнюють. Ви продовжуєте використовувати власні підходи, а тренажери додають цифровий шар практики прямо на уроці.
+
+Спробуйте запустити будь-який тренажер просто зараз — це займе 3 хвилини 👇`,
+
+        nudge4: `Заходили в розділ Тренажери? Спробуйте запустити будь-який — просто щоб побачити як це виглядає з боку дитини 💪`,
+
+        day5: `👨‍🏫 День 5. Час зробити крок — реальний учень, реальний результат.
+
+Ви вже знаєте як працює платформа з обох сторін. Тепер найважливіший крок — провести тестування з реальною дитиною.
+
+"А раптом я щось зроблю не так?"
+Платформа веде педагога крок за кроком — підказки є на кожному екрані.
+
+"А що я скажу батькам про результати?"
+Нічого не потрібно придумувати. AI-інтерпретація підготує текст за вас. Ваша роль — провести тест і передати звіт. Все інше платформа робить сама.
+
+Один реальний тест дає більше розуміння, ніж будь-яка інструкція 💡`,
+
+        nudge5: `Вдалося провести тест з реальним учнем? Якщо є сумніви перед першим запуском — напишіть, розберемось разом 🙌`,
+
+        day6: `📊 День 6. Одне тестування — це знімок. Динаміка — це цінність.
+
+Справжня цінність платформи розкривається коли ви проводите повторний скринінг через 3-6 місяців і бачите що змінилось.
+
+Що бачить педагог:
+Об'єктивне порівняння — не "здається покращилось", а конкретні цифри до і після.
+
+Що бачать батьки:
+Графік динаміки в PDF-звіті — ріст у цифрах за підписом вашого центру. Найпотужніший аргумент для утримання клієнта.
+
+Що отримує центр:
+Репутацію організації, яка вимірює результат, а не просто обіцяє його.
+
+Рекомендований цикл — скринінг раз на 3-6 місяців. Вагомий привід для зустрічі з батьками двічі на рік.
+
+Завтра — фінальний день триалу 👇`,
+
+        nudge6: `Думали вже про регулярні скринінги у вашому центрі? Напишіть — обговоримо як організувати практично 🙌`,
+
+        day7: `🏁 День 7. Ваш триал завершується завтра.
+
+Тепер головне питання: що далі?
+
+🟦 Basic — $50/міс
+Індивідуальне тестування офлайн на вашому планшеті + Android-додаток + Адмінка.
+Пакет на рік — $500 (2 місяці в подарунок).
+
+🟪 Plus — $75/міс
+Все що є в Basic + онлайн індивідуальне тестування на гаджеті учня.
+Пакет на рік — $750 (2 місяці в подарунок).
+
+⬛️ Ultra — $120/міс
+Все що є в Plus + групове тестування цілого класу — офлайн і онлайн.
+Один груповий скринінг вже окупає підписку.
+
+Вигідніше купувати пакетами — є додаткові знижки:
+👉 https://www.neuro.educatimo.com/pricing
+
+Ще не визначились або є питання? Запишіться на дзвінок:
+📞 https://calendly.com/alekssve/neuro-educatimo
+
+Дякуємо що були з нами ці 7 днів 🚀`,
+
+        nudge7: `Не встигли визначитись з тарифом? Запишіться на дзвінок — підберемо варіант: https://calendly.com/alekssve/neuro-educatimo`,
+    }
+};
+
+// Build inline keyboard for "done, next" button per day
+function getTrialNextButton(lang, dayNum) {
+    const labels = {
+        uk: '✅ Виконав, далі →',
+        ru: '✅ Выполнил, далее →',
+        en: '✅ Done, next →',
+        pl: '✅ Gotowe, dalej →',
+        cs: '✅ Hotovo, dále →',
+    };
+    return {
+        inline_keyboard: [[{
+            text: labels[lang] || labels.uk,
+            callback_data: `trial_next_${dayNum}`
+        }]]
+    };
+}
+
+// Schedule the full 7-day trial chain for a lead
+async function scheduleTrial(telegramId, lang) {
+    const L = lang || 'uk';
+    const msgs = TRIAL_MESSAGES[L] || TRIAL_MESSAGES.uk;
+    const now = new Date();
+
+    // Schedule: day N sends at now + N*24h; nudge at day_send_at + 20h (day0/1 nudge: 36h)
+    const days = [
+        { key: 'day0', nudgeKey: 'nudge0', delayH: 0,   nudgeDelayH: 36, dayNum: 0 },
+        { key: 'day1', nudgeKey: 'nudge1', delayH: 24,  nudgeDelayH: 36, dayNum: 1 },
+        { key: 'day2', nudgeKey: 'nudge2', delayH: 48,  nudgeDelayH: 20, dayNum: 2 },
+        { key: 'day3', nudgeKey: 'nudge3', delayH: 72,  nudgeDelayH: 20, dayNum: 3 },
+        { key: 'day4', nudgeKey: 'nudge4', delayH: 96,  nudgeDelayH: 20, dayNum: 4 },
+        { key: 'day5', nudgeKey: 'nudge5', delayH: 120, nudgeDelayH: 20, dayNum: 5 },
+        { key: 'day6', nudgeKey: 'nudge6', delayH: 144, nudgeDelayH: 20, dayNum: 6 },
+        { key: 'day7', nudgeKey: 'nudge7', delayH: 168, nudgeDelayH: 20, dayNum: 7 },
+    ];
+
+    for (const d of days) {
+        const daySendAt = new Date(now.getTime() + d.delayH * 3600000);
+        const nudgeSendAt = new Date(daySendAt.getTime() + d.nudgeDelayH * 3600000);
+        const replyMarkup = d.dayNum < 7 ? getTrialNextButton(L, d.dayNum) : null;
+
+        await pool.query(
+            `INSERT INTO scheduled_messages (telegram_id, send_at, message, type, reply_markup)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [telegramId, daySendAt.toISOString(), msgs[d.key], `trial_day_${d.dayNum}`,
+             replyMarkup ? JSON.stringify(replyMarkup) : null]
+        );
+
+        if (msgs[d.nudgeKey]) {
+            await pool.query(
+                `INSERT INTO scheduled_messages (telegram_id, send_at, message, type, related_send_at)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [telegramId, nudgeSendAt.toISOString(), msgs[d.nudgeKey],
+                 `trial_nudge_${d.dayNum}`, daySendAt.toISOString()]
+            );
+        }
+    }
+    console.log(`Trial chain scheduled for tg_id=${telegramId} lang=${L}`);
+}
+
+// Cancel full trial chain for a lead (on paid plan conversion)
+async function cancelTrialChain(telegramId) {
+    await pool.query(
+        `UPDATE scheduled_messages SET sent = TRUE
+         WHERE telegram_id = $1 AND type LIKE 'trial_%' AND sent = FALSE`,
+        [telegramId]
+    );
+    console.log(`Trial chain cancelled for tg_id=${telegramId}`);
 }
 
 // Текст первого сообщения бота по языку и статусу бронирования
@@ -1200,6 +1484,54 @@ app.post('/api/tg-start-token', async (req, res) => {
 app.post('/api/tg-webhook', async (req, res) => {
     res.json({ ok: true }); // Telegram ждёт 200 немедленно
     try {
+        // ── Обработка нажатий inline-кнопок (callback_query) ──────────────────
+        const cbq = req.body?.callback_query;
+        if (cbq) {
+            const cbId = cbq.id;
+            const cbData = cbq.data || '';
+            const cbTgId = cbq.from?.id;
+            await answerCallbackQuery(cbId);
+
+            const nextMatch = cbData.match(/^trial_next_(\d+)$/);
+            if (nextMatch && cbTgId) {
+                const dayNum = parseInt(nextMatch[1]);
+                const nextDayNum = dayNum + 1;
+
+                // Отменить nudge для текущего дня
+                await pool.query(
+                    `UPDATE scheduled_messages SET sent = TRUE
+                     WHERE telegram_id = $1 AND type = $2 AND sent = FALSE`,
+                    [cbTgId, `trial_nudge_${dayNum}`]
+                );
+
+                if (nextDayNum <= 7) {
+                    // Найти следующий запланированный день
+                    const nextRow = await pool.query(
+                        `SELECT id, message, reply_markup FROM scheduled_messages
+                         WHERE telegram_id = $1 AND type = $2 AND sent = FALSE
+                         LIMIT 1`,
+                        [cbTgId, `trial_day_${nextDayNum}`]
+                    );
+                    if (nextRow.rows.length) {
+                        const nr = nextRow.rows[0];
+                        const replyMarkup = nr.reply_markup || null;
+                        // Отправить немедленно и отметить как sent
+                        await sendTelegramMessage(cbTgId, nr.message, replyMarkup);
+                        await pool.query(`UPDATE scheduled_messages SET sent = TRUE WHERE id = $1`, [nr.id]);
+                        // Обновить related_send_at у nudge следующего дня на "сейчас"
+                        await pool.query(
+                            `UPDATE scheduled_messages SET related_send_at = NOW(),
+                             send_at = NOW() + INTERVAL '20 hours'
+                             WHERE telegram_id = $1 AND type = $2 AND sent = FALSE`,
+                            [cbTgId, `trial_nudge_${nextDayNum}`]
+                        );
+                        console.log(`TG trial: button pressed day=${dayNum}, sent day=${nextDayNum} to tg=${cbTgId}`);
+                    }
+                }
+            }
+            return;
+        }
+
         const msg = req.body?.message;
         if (!msg) return;
 
@@ -1866,16 +2198,77 @@ app.get('/admin', isAdmin, (req, res) => {
 });
 
 
+
+// ─── POST /api/trial-start: активирует 7-дневную цепочку для лида ────────────
+app.post('/api/trial-start', async (req, res) => {
+    try {
+        const { email, telegram_id, lang } = req.body || {};
+        if (!email && !telegram_id) {
+            return res.status(400).json({ ok: false, error: 'email or telegram_id required' });
+        }
+
+        let tgId = telegram_id ? parseInt(telegram_id) : null;
+        let leadLang = lang || 'uk';
+
+        // Если telegram_id не передан — ищем по email
+        if (!tgId && email) {
+            const row = await pool.query(
+                `SELECT telegram_id, lang FROM landing_waitlist
+                 WHERE email = $1 AND telegram_id IS NOT NULL
+                 ORDER BY created_at DESC LIMIT 1`,
+                [email]
+            );
+            if (!row.rows.length) {
+                return res.status(404).json({ ok: false, error: 'lead not found or no telegram_id' });
+            }
+            tgId = row.rows[0].telegram_id;
+            if (!lang) leadLang = (row.rows[0].lang || 'uk').toLowerCase().replace('cz','cs').replace('ua','uk');
+        }
+
+        // Проверить: нет ли уже активной цепочки
+        const existing = await pool.query(
+            `SELECT COUNT(*) FROM scheduled_messages
+             WHERE telegram_id = $1 AND type LIKE 'trial_%' AND sent = FALSE`,
+            [tgId]
+        );
+        if (parseInt(existing.rows[0].count) > 0) {
+            return res.status(409).json({ ok: false, error: 'trial chain already active' });
+        }
+
+        await scheduleTrial(tgId, leadLang);
+        res.json({ ok: true, telegram_id: tgId, lang: leadLang });
+    } catch (err) {
+        console.error('/api/trial-start error:', err.message);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
 // ─── Cron: отправить запланированные TG-напоминания ─────────────────────────
 setInterval(async () => {
     try {
         const result = await pool.query(
-            `SELECT id, telegram_id, message FROM scheduled_messages
+            `SELECT id, telegram_id, message, type, reply_markup, related_send_at
+             FROM scheduled_messages
              WHERE sent = FALSE AND send_at <= NOW()
              ORDER BY send_at ASC LIMIT 10`
         );
         for (const row of result.rows) {
-            await sendTelegramMessage(row.telegram_id, row.message);
+            // Nudge-сообщения: пропустить если лид писал после основного сообщения
+            if (row.type && row.type.startsWith('trial_nudge_') && row.related_send_at) {
+                const activityCheck = await pool.query(
+                    `SELECT COUNT(*) FROM tg_conversations
+                     WHERE telegram_id = $1 AND created_at > $2`,
+                    [row.telegram_id, row.related_send_at]
+                );
+                if (parseInt(activityCheck.rows[0].count) > 0) {
+                    // Лид активен — пропустить nudge
+                    await pool.query(`UPDATE scheduled_messages SET sent = TRUE WHERE id = $1`, [row.id]);
+                    console.log(`TG cron: nudge skipped (active lead) id=${row.id} tg=${row.telegram_id}`);
+                    continue;
+                }
+            }
+            const replyMarkup = row.reply_markup || null;
+            await sendTelegramMessage(row.telegram_id, row.message, replyMarkup);
             await pool.query(`UPDATE scheduled_messages SET sent = TRUE WHERE id = $1`, [row.id]);
         }
         if (result.rows.length) console.log(`TG cron: sent ${result.rows.length} scheduled messages`);
@@ -1896,7 +2289,7 @@ app.listen(port, async () => {
             const resp = await fetch(`https://api.telegram.org/bot${tgToken}/setWebhook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message'] })
+                body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message', 'callback_query'] })
             });
             const json = await resp.json();
             if (json.ok) console.log(`TG: webhook registered → ${webhookUrl}`);
