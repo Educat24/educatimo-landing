@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тарифи — Neuro Educatimo</title>
+<meta name="description" content="Тарифи Neuro.Educatimo: Basic, Plus, Ultra. Окупається в перший місяць — розрахуйте прибуток для вашого центру.">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="stylesheet" href="/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & base ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ── Back bar ───────────────────────────────────────────────────── */
+.back-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  padding: 12px 0;
+}
+.back-bar .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.back-bar .brand {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #007bff;
+  text-decoration: none;
+}
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .9rem;
+  font-weight: 500;
+  color: #343a40;
+  text-decoration: none;
+  padding: 7px 16px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 50px;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.back-btn:hover {
+  background: #007bff;
+  color: #fff;
+  border-color: #007bff;
+  text-decoration: none;
+}
+.back-btn svg { flex-shrink: 0; }
+
+/* ── Hero ───────────────────────────────────────────────────────── */
+.pricing-hero {
+  background: linear-gradient(135deg, #0062cc 0%, #0096ff 100%);
+  color: #fff;
+  text-align: center;
+  padding: 64px 20px 56px;
+}
+.pricing-hero h1 {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  color: #fff;
+  margin: 0 0 14px;
+  line-height: 1.25;
+}
+.pricing-hero p {
+  font-size: clamp(1rem, 2.5vw, 1.15rem);
+  opacity: .92;
+  max-width: 640px;
+  margin: 0 auto 32px;
+}
+
+/* toggle */
+.billing-toggle {
+  display: inline-flex;
+  background: rgba(255,255,255,.18);
+  border-radius: 50px;
+  padding: 4px;
+  gap: 4px;
+}
+.billing-toggle button {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,.8);
+  padding: 8px 22px;
+  border-radius: 50px;
+  font-size: .92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+}
+.billing-toggle button.active {
+  background: #fff;
+  color: #0062cc;
+  font-weight: 700;
+}
+.save-badge {
+  display: inline-block;
+  background: #28a745;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 50px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* ── Plans grid ─────────────────────────────────────────────────── */
+.plans-section {
+  padding: 60px 20px;
+  background: #f4f7f9;
+}
+.plans-section .section-label {
+  text-align: center;
+  font-size: .85rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+.plans-section h2 {
+  text-align: center;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: #343a40;
+  margin: 0 0 40px;
+}
+
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1060px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .plans-grid { grid-template-columns: 1fr; max-width: 480px; }
+}
+
+.plan-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.08);
+  padding: 32px 28px 28px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: transform .2s, box-shadow .2s;
+}
+.plan-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 36px rgba(0,0,0,.13);
+}
+.plan-card.popular {
+  border: 2.5px solid #007bff;
+  padding-top: 44px;
+}
+.popular-badge {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, #007bff, #0096ff);
+  color: #fff;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 4px 18px;
+  border-radius: 50px;
+  white-space: nowrap;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.plan-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+.plan-name {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #343a40;
+  margin: 0 0 4px;
+}
+.plan-tagline {
+  font-size: .88rem;
+  color: #6c757d;
+  margin: 0 0 20px;
+  min-height: 36px;
+}
+
+.plan-price-block {
+  margin-bottom: 22px;
+}
+.plan-price {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: #007bff;
+  line-height: 1;
+}
+.plan-price .currency { font-size: 1.3rem; vertical-align: super; }
+.plan-price .period {
+  font-size: .85rem;
+  font-weight: 400;
+  color: #6c757d;
+  margin-left: 4px;
+}
+.plan-price-year {
+  font-size: .9rem;
+  color: #28a745;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.plan-price-year .strike {
+  text-decoration: line-through;
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+.plan-divider {
+  border: none;
+  border-top: 1px solid #dee2e6;
+  margin: 0 0 18px;
+}
+
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  flex: 1;
+}
+.plan-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: .93rem;
+  color: #343a40;
+  padding: 5px 0;
+}
+.plan-features li .check {
+  color: #28a745;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.plan-features li .cross {
+  color: #adb5bd;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.plan-features li.muted { color: #adb5bd; }
+
+.plan-cta {
+  display: block;
+  text-align: center;
+  background: linear-gradient(to bottom, #007bff, #0069d9);
+  color: #fff;
+  padding: 13px 20px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: .95rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0,123,255,.3);
+  transition: all .2s;
+}
+.plan-cta:hover {
+  background: linear-gradient(to bottom, #0069d9, #005cbf);
+  box-shadow: 0 6px 20px rgba(0,123,255,.4);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.plan-cta.accent {
+  background: linear-gradient(to bottom, #28a745, #218838);
+  box-shadow: 0 4px 14px rgba(40,167,69,.3);
+}
+.plan-cta.accent:hover {
+  background: linear-gradient(to bottom, #218838, #1e7e34);
+  box-shadow: 0 6px 20px rgba(40,167,69,.4);
+}
+.plan-cta.dark {
+  background: linear-gradient(to bottom, #343a40, #212529);
+  box-shadow: 0 4px 14px rgba(52,58,64,.3);
+}
+
+/* ── ROI section ────────────────────────────────────────────────── */
+.roi-section {
+  padding: 64px 20px;
+  background: #fff;
+}
+.roi-section .section-label {
+  text-align: center;
+  font-size: .85rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: #6c757d;
+  margin-bottom: 10px;
+}
+.roi-section h2 {
+  text-align: center;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: #343a40;
+  margin: 0 0 14px;
+}
+.roi-section .subtitle {
+  text-align: center;
+  font-size: 1rem;
+  color: #6c757d;
+  max-width: 600px;
+  margin: 0 auto 48px;
+}
+
+.roi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 1060px;
+  margin: 0 auto 40px;
+}
+@media (max-width: 900px) {
+  .roi-grid { grid-template-columns: 1fr; max-width: 480px; }
+}
+
+.roi-card {
+  border-radius: 16px;
+  padding: 28px 24px;
+  position: relative;
+}
+.roi-card.blue  { background: #e8f4ff; border: 1.5px solid #b8d9ff; }
+.roi-card.purple{ background: #f1eeff; border: 1.5px solid #d4c5ff; }
+.roi-card.dark  { background: #f0f1f2; border: 1.5px solid #ced4da; }
+
+.roi-card .plan-label {
+  font-size: .8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+.roi-card.blue  .plan-label { color: #0062cc; }
+.roi-card.purple .plan-label { color: #6f42c1; }
+.roi-card.dark  .plan-label { color: #495057; }
+
+.roi-card h3 {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 1.1rem;
+  margin: 0 0 16px;
+  color: #343a40;
+}
+.roi-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .9rem;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(0,0,0,.08);
+  gap: 8px;
+}
+.roi-row:last-of-type { border-bottom: none; }
+.roi-row .label { color: #6c757d; }
+.roi-row .value { font-weight: 600; color: #343a40; white-space: nowrap; }
+.roi-total {
+  margin-top: 14px;
+  background: rgba(40,167,69,.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.roi-total .label { font-size: .88rem; font-weight: 600; color: #155724; }
+.roi-total .value { font-size: 1.15rem; font-weight: 700; color: #28a745; }
+
+.roi-note {
+  text-align: center;
+  font-size: .88rem;
+  color: #6c757d;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.roi-note strong { color: #343a40; }
+
+/* ── Packages section ───────────────────────────────────────────── */
+.packages-section {
+  padding: 60px 20px;
+  background: #f4f7f9;
+}
+.packages-section h2 {
+  text-align: center;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  color: #343a40;
+  margin: 0 0 10px;
+}
+.packages-section .subtitle {
+  text-align: center;
+  font-size: 1rem;
+  color: #6c757d;
+  margin: 0 0 36px;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+@media (max-width: 768px) {
+  .packages-grid { grid-template-columns: 1fr; max-width: 400px; }
+}
+.pkg-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: 0 3px 16px rgba(0,0,0,.07);
+  position: relative;
+}
+.pkg-card.best {
+  border: 2px solid #28a745;
+}
+.pkg-best-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #28a745;
+  color: #fff;
+  font-size: .73rem;
+  font-weight: 700;
+  padding: 3px 14px;
+  border-radius: 50px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.pkg-months {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #007bff;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.pkg-months span { font-size: 1rem; font-weight: 400; color: #6c757d; }
+.pkg-discount {
+  display: inline-block;
+  background: #e8f4ff;
+  color: #0062cc;
+  font-size: .8rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 50px;
+  margin: 6px 0 12px;
+}
+.pkg-card.best .pkg-discount {
+  background: #e6f9e6;
+  color: #155724;
+}
+.pkg-description {
+  font-size: .88rem;
+  color: #6c757d;
+}
+.pkg-description strong { color: #343a40; }
+
+/* ── Compare table ──────────────────────────────────────────────── */
+.compare-section {
+  padding: 60px 20px;
+  background: #fff;
+  overflow-x: auto;
+}
+.compare-section h2 {
+  text-align: center;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  color: #343a40;
+  margin: 0 0 32px;
+}
+.compare-table {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: .93rem;
+}
+.compare-table th {
+  padding: 14px 16px;
+  text-align: center;
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: 1rem;
+  border-bottom: 2px solid #dee2e6;
+}
+.compare-table th:first-child { text-align: left; }
+.compare-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  text-align: center;
+  vertical-align: middle;
+}
+.compare-table td:first-child {
+  text-align: left;
+  color: #343a40;
+  font-weight: 500;
+}
+.compare-table tr:hover td { background: #f8f9fa; }
+.compare-table .check-yes { color: #28a745; font-size: 1.1rem; }
+.compare-table .check-no  { color: #ced4da; font-size: 1.1rem; }
+.th-basic  { color: #0062cc; }
+.th-plus   { color: #6f42c1; }
+.th-ultra  { color: #343a40; }
+
+/* ── CTA Banner ─────────────────────────────────────────────────── */
+.cta-banner {
+  background: linear-gradient(135deg, #0062cc 0%, #0096ff 100%);
+  color: #fff;
+  text-align: center;
+  padding: 60px 20px;
+}
+.cta-banner h2 {
+  font-family: 'Merriweather', Georgia, serif;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  color: #fff;
+  margin: 0 0 14px;
+}
+.cta-banner p {
+  font-size: 1.05rem;
+  opacity: .9;
+  max-width: 560px;
+  margin: 0 auto 28px;
+}
+.btn-white {
+  display: inline-block;
+  background: #fff;
+  color: #0062cc;
+  padding: 14px 36px;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: .95rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-decoration: none;
+  box-shadow: 0 4px 18px rgba(0,0,0,.15);
+  transition: all .2s;
+  margin: 0 8px 8px;
+}
+.btn-white:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,.22);
+  transform: translateY(-2px);
+  text-decoration: none;
+  color: #0062cc;
+}
+.btn-ghost {
+  display: inline-block;
+  background: transparent;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,.7);
+  padding: 13px 32px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: .95rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  text-decoration: none;
+  transition: all .2s;
+  margin: 0 8px 8px;
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,.12);
+  border-color: #fff;
+  text-decoration: none;
+  color: #fff;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.pricing-footer {
+  background: #343a40;
+  color: rgba(255,255,255,.6);
+  text-align: center;
+  padding: 28px 20px;
+  font-size: .88rem;
+}
+.pricing-footer a { color: rgba(255,255,255,.8); }
+.pricing-footer a:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- ── Back bar ──────────────────────────────────────────────────────────── -->
+<header class="back-bar">
+  <div class="container">
+    <a href="https://www.neuro.educatimo.com/uk/" class="brand">Neuro.Educatimo</a>
+    <a href="https://www.neuro.educatimo.com/uk/#registration" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M8.5 2.5L4 7l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Залишити заявку
+    </a>
+  </div>
+</header>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<section class="pricing-hero">
+  <h1>Тарифи та окупність</h1>
+  <p>Підписка окупається з перших сесій. Оберіть план — і розрахуйте прибуток для вашого центру.</p>
+  <div class="billing-toggle">
+    <button class="active" id="btn-monthly" onclick="setBilling('monthly')">Щомісяця</button>
+    <button id="btn-yearly" onclick="setBilling('yearly')">На рік <span class="save-badge">−17%</span></button>
+  </div>
+</section>
+
+<!-- ── Plans ──────────────────────────────────────────────────────────────── -->
+<section class="plans-section">
+  <p class="section-label">Плани</p>
+  <h2>Оберіть підходящий тариф</h2>
+
+  <div class="plans-grid">
+
+    <!-- Basic -->
+    <div class="plan-card">
+      <div class="plan-icon">🟦</div>
+      <div class="plan-name">Basic</div>
+      <div class="plan-tagline">Офлайн-діагностика на вашому планшеті</div>
+      <div class="plan-price-block">
+        <div class="plan-price">
+          <span class="currency">$</span><span class="monthly-price">50</span><span class="yearly-price" style="display:none">42</span><span class="period">/міс</span>
+        </div>
+        <div class="plan-price-year monthly-note" style="color:#6c757d;font-size:.85rem;margin-top:4px;">Рахунок щомісяця</div>
+        <div class="plan-price-year yearly-note" style="display:none"><span class="strike">$50</span> → $500/рік — 2 місяці в подарунок</div>
+      </div>
+      <hr class="plan-divider">
+      <ul class="plan-features">
+        <li><span class="check">✔</span> Індивідуальне тестування офлайн (планшет)</li>
+        <li><span class="check">✔</span> Android-додаток для учня</li>
+        <li><span class="check">✔</span> Адмінка та управління учнями</li>
+        <li><span class="check">✔</span> PDF-звіти під брендом центру</li>
+        <li><span class="check">✔</span> AI-інтерпретація результатів</li>
+        <li class="muted"><span class="cross">✗</span> Онлайн тест на гаджеті учня</li>
+        <li class="muted"><span class="cross">✗</span> Групове тестування класу</li>
+      </ul>
+      <a href="https://www.neuro.educatimo.com/uk/#registration" class="plan-cta">Розпочати</a>
+    </div>
+
+    <!-- Plus (popular) -->
+    <div class="plan-card popular">
+      <div class="popular-badge">⭐ Найпопулярніший</div>
+      <div class="plan-icon">🟪</div>
+      <div class="plan-name">Plus</div>
+      <div class="plan-tagline">Basic + онлайн тест на гаджеті учня</div>
+      <div class="plan-price-block">
+        <div class="plan-price">
+          <span class="currency">$</span><span class="monthly-price">75</span><span class="yearly-price" style="display:none">63</span><span class="period">/міс</span>
+        </div>
+        <div class="plan-price-year monthly-note" style="color:#6c757d;font-size:.85rem;margin-top:4px;">Рахунок щомісяця</div>
+        <div class="plan-price-year yearly-note" style="display:none"><span class="strike">$75</span> → $750/рік — 2 місяці в подарунок</div>
+      </div>
+      <hr class="plan-divider">
+      <ul class="plan-features">
+        <li><span class="check">✔</span> Індивідуальне тестування офлайн (планшет)</li>
+        <li><span class="check">✔</span> Android-додаток для учня</li>
+        <li><span class="check">✔</span> Адмінка та управління учнями</li>
+        <li><span class="check">✔</span> PDF-звіти під брендом центру</li>
+        <li><span class="check">✔</span> AI-інтерпретація результатів</li>
+        <li><span class="check">✔</span> Онлайн тест на гаджеті учня</li>
+        <li class="muted"><span class="cross">✗</span> Групове тестування класу</li>
+      </ul>
+      <a href="https://www.neuro.educatimo.com/uk/#registration" class="plan-cta accent">Розпочати</a>
+    </div>
+
+    <!-- Ultra -->
+    <div class="plan-card">
+      <div class="plan-icon">⬛</div>
+      <div class="plan-name">Ultra</div>
+      <div class="plan-tagline">Plus + груповий скринінг цілого класу</div>
+      <div class="plan-price-block">
+        <div class="plan-price">
+          <span class="currency">$</span><span class="monthly-price">120</span><span class="yearly-price" style="display:none">100</span><span class="period">/міс</span>
+        </div>
+        <div class="plan-price-year monthly-note" style="color:#6c757d;font-size:.85rem;margin-top:4px;">Рахунок щомісяця</div>
+        <div class="plan-price-year yearly-note" style="display:none"><span class="strike">$120</span> → $1200/рік — 2 місяці в подарунок</div>
+      </div>
+      <hr class="plan-divider">
+      <ul class="plan-features">
+        <li><span class="check">✔</span> Індивідуальне тестування офлайн (планшет)</li>
+        <li><span class="check">✔</span> Android-додаток для учня</li>
+        <li><span class="check">✔</span> Адмінка та управління учнями</li>
+        <li><span class="check">✔</span> PDF-звіти під брендом центру</li>
+        <li><span class="check">✔</span> AI-інтерпретація результатів</li>
+        <li><span class="check">✔</span> Онлайн тест на гаджеті учня</li>
+        <li><span class="check">✔</span> Групове тестування класу (офлайн + онлайн)</li>
+      </ul>
+      <a href="https://www.neuro.educatimo.com/uk/#registration" class="plan-cta dark">Розпочати</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── ROI ────────────────────────────────────────────────────────────────── -->
+<section class="roi-section">
+  <p class="section-label">Окупність</p>
+  <h2>Підписка окупається в перший місяць</h2>
+  <p class="subtitle">Діагностика — це не витрата, а нова послуга з конкретним доходом.</p>
+
+  <div class="roi-grid">
+
+    <!-- Basic ROI -->
+    <div class="roi-card blue">
+      <div class="plan-label">🟦 Basic — $50/міс</div>
+      <h3>5 індивідуальних діагностик</h3>
+      <div class="roi-row"><span class="label">Ціна однієї сесії</span><span class="value">500–800 грн</span></div>
+      <div class="roi-row"><span class="label">Дохід за 5 сесій</span><span class="value">2 500–4 000 грн</span></div>
+      <div class="roi-row"><span class="label">Вартість підписки</span><span class="value">~2 000 грн</span></div>
+      <div class="roi-total">
+        <span class="label">💰 Чистий прибуток</span>
+        <span class="value">+500–2 000 грн</span>
+      </div>
+    </div>
+
+    <!-- Plus ROI -->
+    <div class="roi-card purple">
+      <div class="plan-label">🟪 Plus — $75/міс</div>
+      <h3>10 індивідуальних діагностик</h3>
+      <div class="roi-row"><span class="label">Ціна однієї сесії</span><span class="value">500–1 000 грн</span></div>
+      <div class="roi-row"><span class="label">Дохід за 10 сесій</span><span class="value">5 000–10 000 грн</span></div>
+      <div class="roi-row"><span class="label">Вартість підписки</span><span class="value">~3 000 грн</span></div>
+      <div class="roi-total">
+        <span class="label">💰 Чистий прибуток</span>
+        <span class="value">+2 000–7 000 грн</span>
+      </div>
+    </div>
+
+    <!-- Ultra ROI -->
+    <div class="roi-card dark">
+      <div class="plan-label">⬛ Ultra — $120/міс</div>
+      <h3>2 групових скринінги класу</h3>
+      <div class="roi-row"><span class="label">Дітей у групі</span><span class="value">10–15</span></div>
+      <div class="roi-row"><span class="label">Ціна за дитину</span><span class="value">500–800 грн</span></div>
+      <div class="roi-row"><span class="label">Дохід за 2 скринінги</span><span class="value">10 000–24 000 грн</span></div>
+      <div class="roi-row"><span class="label">Вартість підписки</span><span class="value">~4 800 грн</span></div>
+      <div class="roi-total">
+        <span class="label">💰 Чистий прибуток</span>
+        <span class="value">+5 200–19 200 грн</span>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="roi-note">
+    <strong>Як рахувати:</strong> один груповий скринінг = 45–60 хвилин роботи педагога на весь клас.
+    Один педагог може провести 3–4 скринінги на день. Клас на 15 учнів при ціні 600 грн/дитину = 9 000 грн.
+    <br><br>Вказані суми — мінімальний реалістичний сценарій. Реальний дохід залежить від кількості учнів та цінової політики центру.
+  </p>
+</section>
+
+<!-- ── Packages ───────────────────────────────────────────────────────────── -->
+<section class="packages-section">
+  <h2>Пакетні знижки</h2>
+  <p class="subtitle">Чим довший пакет — тим більше заощаджуєте.</p>
+  <div class="packages-grid">
+    <div class="pkg-card">
+      <div class="pkg-months">3 <span>місяці</span></div>
+      <div class="pkg-discount">−5%</div>
+      <div class="pkg-description">
+        Basic: <strong>$142</strong><br>
+        Plus: <strong>$213</strong><br>
+        Ultra: <strong>$342</strong>
+      </div>
+    </div>
+    <div class="pkg-card">
+      <div class="pkg-months">6 <span>місяців</span></div>
+      <div class="pkg-discount">−10%</div>
+      <div class="pkg-description">
+        Basic: <strong>$270</strong><br>
+        Plus: <strong>$405</strong><br>
+        Ultra: <strong>$648</strong>
+      </div>
+    </div>
+    <div class="pkg-card best">
+      <div class="pkg-best-badge">Найвигідніше</div>
+      <div class="pkg-months">12 <span>місяців</span></div>
+      <div class="pkg-discount">2 місяці в подарунок</div>
+      <div class="pkg-description">
+        Basic: <strong>$500</strong><br>
+        Plus: <strong>$750</strong><br>
+        Ultra: <strong>$1 200</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Compare table ──────────────────────────────────────────────────────── -->
+<section class="compare-section">
+  <h2>Порівняння планів</h2>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th class="th-basic">🟦 Basic</th>
+        <th class="th-plus">🟪 Plus</th>
+        <th class="th-ultra">⬛ Ultra</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Ціна</td>
+        <td><strong>$50/міс</strong></td>
+        <td><strong>$75/міс</strong></td>
+        <td><strong>$120/міс</strong></td>
+      </tr>
+      <tr>
+        <td>Індивідуальне тестування офлайн</td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+      <tr>
+        <td>Android-додаток для учня</td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+      <tr>
+        <td>PDF-звіти під брендом центру</td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+      <tr>
+        <td>AI-інтерпретація результатів</td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+      <tr>
+        <td>Онлайн тест на гаджеті учня</td>
+        <td><span class="check-no">✗</span></td>
+        <td><span class="check-yes">✔</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+      <tr>
+        <td>Групове тестування класу</td>
+        <td><span class="check-no">✗</span></td>
+        <td><span class="check-no">✗</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+      <tr>
+        <td>Групове тестування офлайн</td>
+        <td><span class="check-no">✗</span></td>
+        <td><span class="check-no">✗</span></td>
+        <td><span class="check-yes">✔</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── CTA Banner ─────────────────────────────────────────────────────────── -->
+<section class="cta-banner">
+  <h2>Не можете визначитись із тарифом?</h2>
+  <p>Запишіться на безкоштовний дзвінок — підберемо оптимальний план під ваш центр і відповімо на всі питання.</p>
+  <a href="https://calendly.com/alekssve/neuro-educatimo" target="_blank" class="btn-white">📞 Записатись на дзвінок</a>
+  <a href="https://www.neuro.educatimo.com/uk/#registration" class="btn-ghost">Розпочати триал безкоштовно</a>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────────────────────────────── -->
+<footer class="pricing-footer">
+  <p>© 2026 Neuro.Educatimo &nbsp;·&nbsp; <a href="https://www.neuro.educatimo.com/uk/">Головна</a> &nbsp;·&nbsp; <a href="https://calendly.com/alekssve/neuro-educatimo">Записатись на демо</a></p>
+</footer>
+
+<script>
+function setBilling(mode) {
+  const isYearly = mode === 'yearly';
+  document.getElementById('btn-monthly').classList.toggle('active', !isYearly);
+  document.getElementById('btn-yearly').classList.toggle('active', isYearly);
+  document.querySelectorAll('.monthly-price').forEach(el => el.style.display = isYearly ? 'none' : '');
+  document.querySelectorAll('.yearly-price').forEach(el => el.style.display = isYearly ? '' : 'none');
+  document.querySelectorAll('.monthly-note').forEach(el => el.style.display = isYearly ? 'none' : '');
+  document.querySelectorAll('.yearly-note').forEach(el => el.style.display = isYearly ? '' : 'none');
+}
+</script>
+</body>
+</html>

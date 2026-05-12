@@ -137,6 +137,8 @@ LANGS.forEach(lang => {
 // Quiz page (UK only for now)
 app.get('/uk/quiz', (req, res) => res.sendFile(path.join(__dirname, '..', 'uk', 'quiz.html')));
 app.get('/uk/quiz/', (req, res) => res.redirect(301, '/uk/quiz'));
+app.get('/pricing', (req, res) => res.sendFile(path.join(__dirname, '..', 'pricing.html')));
+app.get('/pricing/', (req, res) => res.redirect(301, '/pricing'));
 
 // Serve static files (style.css, img/, favicon, etc.)
 app.use(express.static(path.join(__dirname, '..'), { extensions: ['html'] }));
