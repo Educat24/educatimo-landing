@@ -668,9 +668,12 @@ async function findNotionPageByEmail(email) {
 }
 
 // Создать нового лида в CRM после регистрации на лендинге
-async function createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign }) {
+async function createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign, quiz_answers }) {
     const dbId = process.env.NOTION_CRM_DB_ID;
     if (!dbId || !process.env.NOTION_TOKEN) return;
+    const quizParts = quiz_answers
+        ? '\n\nВідповіді квізу:\n' + Object.entries(quiz_answers).map(([k, v]) => `  ${k}: ${v}`).join('\n')
+        : '';
     const formParts = [
         org_type        ? `Тип орг.: ${org_type}` : null,
         students_count  ? `Учеников: ${students_count}` : null,
@@ -678,7 +681,7 @@ async function createNotionLead({ email, center_name, phone, lang, org_type, stu
         utm_source      ? `UTM source: ${utm_source}` : null,
         utm_medium      ? `UTM medium: ${utm_medium}` : null,
         utm_campaign    ? `UTM campaign: ${utm_campaign}` : null,
-    ].filter(Boolean).join('\n');
+    ].filter(Boolean).join('\n') + quizParts;
     const result = await notionRequest('POST', '/pages', {
         parent: { database_id: dbId },
         properties: {
@@ -700,7 +703,7 @@ async function updateNotionLeadDemo(email, demoDate) {
     if (!pageId) return;
     const result = await notionRequest('PATCH', `/pages/${pageId}`, {
         properties: {
-            'Дата демо': { date: { start: new Date(demoDate).toISOString(), is_datetime: true } },
+            'Дата демо': { date: { start: new Date(demoDate).toISOString() } },
             'Этап':      { status: { name: 'Демо' } },
             'След шаг':  { select: { name: 'Провести демо' } },
         }
@@ -713,7 +716,7 @@ async function updateNotionLeadTelegram(email) {
     const pageId = await findNotionPageByEmail(email);
     if (!pageId) return;
     await notionRequest('PATCH', `/pages/${pageId}`, {
-        properties: { 'Канал коммуникации': { select: { name: 'ТГ' } } }
+        properties: { 'Канал коммуникации': { select: { name: 'ТГ бот' } } }
     });
 }
 
@@ -1153,7 +1156,7 @@ app.post('/api/register', parseForm, async (req, res) => {
 
         // Fire-and-forget: создать лида в Notion CRM
         if (dbOk) {
-            createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign })
+            createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign, quiz_answers })
                 .catch(err => console.error('Notion createLead error:', err.message));
         }
 
@@ -1746,6 +1749,21 @@ SaaS-платформа для образовательных центров: о
         // Fire-and-forget: обновить канал коммуникации на ТГ в Notion CRM
         updateNotionLeadTelegram(lead.email)
             .catch(err => console.error('Notion updateTelegram error:', err.message));
+
+        // Уведомить администратора о подключении лида к боту
+        const adminIdOnStart = process.env.TELEGRAM_ADMIN_ID;
+        if (adminIdOnStart) {
+            const demoInfo = lead.calendly_start_time
+                ? `\n📅 Демо: <b>${new Date(lead.calendly_start_time).toLocaleString('uk-UA', { timeZone: 'Europe/Kiev', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</b>`
+                : '\n📅 Демо: не заплановано';
+            const tgHandle = username ? ` | @${username}` : '';
+            const adminMsg = `🤖 <b>Лід підключив бота!</b>\n\n` +
+                `🏢 <b>${lead.center_name || firstName}</b>${tgHandle}\n` +
+                `📧 ${lead.email}${demoInfo}\n\n` +
+                `<i>Написати лиду: tg://user?id=${tgId}</i>`;
+            sendTelegramMessage(adminIdOnStart, adminMsg)
+                .catch(err => console.error('Admin TG notify error:', err.message));
+        }
 
         // Отправить приветственное сообщение
         const welcomeText = getTgWelcomeText(langKey, firstName, lead.center_name, isBooked);
