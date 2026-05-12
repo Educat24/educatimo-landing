@@ -710,7 +710,7 @@ async function updateNotionLeadDemo(email, demoDate, zoomUrl = null) {
         'След шаг':  { select: { name: 'Провести демо' } },
     };
     if (zoomUrl) {
-        props['Контакт'] = { rich_text: [{ text: { content: `Zoom: ${zoomUrl}` } }] };
+        props['Комментарии'] = { rich_text: [{ text: { content: `🔗 Zoom: ${zoomUrl}` } }] };
     }
     const result = await notionRequest('PATCH', `/pages/${pageId}`, { properties: props });
     if (result) console.log(`Notion: demo updated email=${email} zoom=${zoomUrl || 'none'}`);
