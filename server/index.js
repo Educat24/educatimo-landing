@@ -225,6 +225,9 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'tg_start_token') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN tg_start_token VARCHAR(64);
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'zoom_url') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN zoom_url TEXT;
+                END IF;
             END $$;
 
             CREATE TABLE IF NOT EXISTS scheduled_messages (
@@ -698,17 +701,19 @@ async function createNotionLead({ email, center_name, phone, lang, org_type, stu
 }
 
 // Обновить дату демо когда лид забронировал Calendly
-async function updateNotionLeadDemo(email, demoDate) {
+async function updateNotionLeadDemo(email, demoDate, zoomUrl = null) {
     const pageId = await findNotionPageByEmail(email);
     if (!pageId) return;
-    const result = await notionRequest('PATCH', `/pages/${pageId}`, {
-        properties: {
-            'Дата демо': { date: { start: new Date(demoDate).toISOString() } },
-            'Этап':      { status: { name: 'Демо' } },
-            'След шаг':  { select: { name: 'Провести демо' } },
-        }
-    });
-    if (result) console.log(`Notion: demo updated email=${email}`);
+    const props = {
+        'Дата демо': { date: { start: new Date(demoDate).toISOString() } },
+        'Этап':      { status: { name: 'Демо' } },
+        'След шаг':  { select: { name: 'Провести демо' } },
+    };
+    if (zoomUrl) {
+        props['Контакт'] = { rich_text: [{ text: { content: `Zoom: ${zoomUrl}` } }] };
+    }
+    const result = await notionRequest('PATCH', `/pages/${pageId}`, { properties: props });
+    if (result) console.log(`Notion: demo updated email=${email} zoom=${zoomUrl || 'none'}`);
 }
 
 // Обновить канал коммуникации на ТГ когда лид подключил бота
@@ -1225,6 +1230,9 @@ app.post('/api/store-calendly-event', async (req, res) => {
         });
         const apiData = await apiResp.json();
         const startTime = apiData?.resource?.start_time;
+        // Zoom link: может быть в location.join_url или location.data.join_url
+        const loc = apiData?.resource?.location || {};
+        const zoomUrl = loc.join_url || loc.data?.join_url || null;
 
         if (!startTime) {
             console.warn(`store-calendly-event: no start_time in Calendly response for ${email}`);
@@ -1233,9 +1241,9 @@ app.post('/api/store-calendly-event', async (req, res) => {
 
         // Зберегти в БД
         await pool.query(
-            `UPDATE landing_waitlist SET calendly_event_uri = $1, calendly_start_time = $2
+            `UPDATE landing_waitlist SET calendly_event_uri = $1, calendly_start_time = $2, zoom_url = $4
              WHERE id = (SELECT id FROM landing_waitlist WHERE email = $3 ORDER BY created_at DESC LIMIT 1)`,
-            [event_uri, startTime, email]
+            [event_uri, startTime, email, zoomUrl]
         );
 
         // Якщо лід вже підключив бота — скасувати follow-up "не записався" і запланувати нагадування
@@ -1314,11 +1322,44 @@ app.post('/api/store-calendly-event', async (req, res) => {
             console.log(`store-calendly-event: reminders scheduled for tg_id=${tgId} demo=${startTime}`);
         }
 
-        // Fire-and-forget: обновить дату демо в Notion CRM
-        updateNotionLeadDemo(email, startTime)
+        // Fire-and-forget: обновить дату демо + Zoom-ссылку в Notion CRM
+        updateNotionLeadDemo(email, startTime, zoomUrl)
             .catch(err => console.error('Notion updateDemo error:', err.message));
 
-        console.log(`Calendly event stored: email=${email} start_time=${startTime}`);
+        // Уведомить Олексія и Олександру о новом демо
+        const demoTimeStr = new Date(startTime).toLocaleString('uk-UA', {
+            timeZone: 'Europe/Kiev', day: '2-digit', month: '2-digit',
+            year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        // Найти данные организации
+        const demoOrgRow = await pool.query(
+            `SELECT center_name, telegram_id FROM landing_waitlist WHERE email = $1 ORDER BY created_at DESC LIMIT 1`,
+            [email]
+        );
+        const demoOrg = demoOrgRow.rows[0]?.center_name || email;
+        const zoomLine = zoomUrl ? `\n🔗 Zoom: ${zoomUrl}` : '';
+        const adminDemoMsg = `📅 <b>Нове демо заброньовано!</b>\n\n` +
+            `🏢 <b>${demoOrg}</b>\n` +
+            `📧 ${email}\n` +
+            `🕐 <b>${demoTimeStr}</b>${zoomLine}`;
+        const adminTgId  = process.env.TELEGRAM_ADMIN_ID;
+        const admin2TgId = process.env.TELEGRAM_ADMIN_ALEXANDRA_ID;
+        if (adminTgId)  sendTelegramMessage(adminTgId,  adminDemoMsg).catch(() => {});
+        if (admin2TgId) sendTelegramMessage(admin2TgId, adminDemoMsg).catch(() => {});
+
+        // Запланировать напоминание Олександре за 30 мин до демо
+        if (admin2TgId) {
+            const remind30 = new Date(new Date(startTime).getTime() - 30 * 60 * 1000);
+            if (remind30 > new Date()) {
+                await pool.query(
+                    `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'admin_demo_remind')`,
+                    [admin2TgId, remind30.toISOString(),
+                     `🔔 <b>Нагадування!</b> За 30 хвилин демо з <b>${demoOrg}</b> (${email})${zoomLine}`]
+                );
+            }
+        }
+
+        console.log(`Calendly event stored: email=${email} start_time=${startTime} zoom=${zoomUrl || 'none'}`);
         res.json({ ok: true, start_time: startTime });
     } catch (err) {
         console.error('store-calendly-event error:', err.message);
