@@ -223,7 +223,18 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'tg_start_token') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN tg_start_token VARCHAR(64);
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'ref_code') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN ref_code VARCHAR(100);
+                END IF;
             END $$;
+
+            CREATE TABLE IF NOT EXISTS partners (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                ref_code VARCHAR(100) UNIQUE NOT NULL,
+                notes TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
 
             CREATE TABLE IF NOT EXISTS scheduled_messages (
                 id SERIAL PRIMARY KEY,
@@ -304,7 +315,7 @@ function getLangLabel(lang) {
 async function sendRegistrationEmail(data) {
     const { email, center_name, lang, phone, org_type, students_count, source, quiz_answers,
             preferred_contact,
-            utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer } = data;
+            utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer, ref_code } = data;
     const to = process.env.RECIPIENT_EMAIL || 'svetlichnyioleksiy@gmail.com';
     const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
     const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
@@ -342,11 +353,15 @@ async function sendRegistrationEmail(data) {
             <tr><td style="padding:3px 12px;color:#888;font-size:12px">landing_page</td><td style="padding:3px 12px;font-size:12px">${landing_page || '—'}</td></tr>
             <tr><td style="padding:3px 12px;color:#888;font-size:12px">referrer</td><td style="padding:3px 12px;font-size:12px">${referrer || '—'}</td></tr>`
         : '';
+    const refSection = ref_code ? `\nРеферальный код (амбассадор): ${ref_code}` : '';
+    const refHtml = ref_code
+        ? `<tr><td style="padding:6px 12px;color:#666;background:#fff8e1">Реферальный код:</td><td style="padding:6px 12px;background:#fff8e1"><strong>${ref_code}</strong></td></tr>`
+        : '';
     await transporter.sendMail({
         from: user,
         to,
         subject: `Нова реєстрація: ${center_name}`,
-        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nМесенджер: ${contactMap[preferred_contact] || preferred_contact || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${utmSection}${quizSection}`,
+        text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nМесенджер: ${contactMap[preferred_contact] || preferred_contact || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${refSection}${utmSection}${quizSection}`,
         html: `<table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
             <tr><td style="padding:6px 12px;color:#666">Організація:</td><td style="padding:6px 12px"><strong>${center_name}</strong></td></tr>
             <tr><td style="padding:6px 12px;color:#666">Email:</td><td style="padding:6px 12px">${email}</td></tr>
@@ -357,6 +372,7 @@ async function sendRegistrationEmail(data) {
             <tr><td style="padding:6px 12px;color:#666">Мова:</td><td style="padding:6px 12px">${langLabel}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Джерело:</td><td style="padding:6px 12px">${sourceLabel}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Дата:</td><td style="padding:6px 12px">${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}</td></tr>
+            ${refHtml}
             ${utmHtml}
             ${quizHtml}
         </table>`
@@ -660,13 +676,14 @@ async function findNotionPageByEmail(email) {
 }
 
 // Создать нового лида в CRM после регистрации на лендинге
-async function createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign }) {
+async function createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign, ref_code }) {
     const dbId = process.env.NOTION_CRM_DB_ID;
     if (!dbId || !process.env.NOTION_TOKEN) return;
     const formParts = [
         org_type        ? `Тип орг.: ${org_type}` : null,
         students_count  ? `Учеников: ${students_count}` : null,
         lang            ? `Язык: ${lang}` : null,
+        ref_code        ? `Реферальный код (амбассадор): ${ref_code}` : null,
         utm_source      ? `UTM source: ${utm_source}` : null,
         utm_medium      ? `UTM medium: ${utm_medium}` : null,
         utm_campaign    ? `UTM campaign: ${utm_campaign}` : null,
@@ -806,6 +823,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     const fbclid       = req.body.fbclid       || '';
     const landing_page = req.body.landing_page || '';
     const referrer     = req.body.referrer     || '';
+    const ref_code      = req.body.ref         || '';
     // quiz_answers may be sent as JSON string from quiz page
     let quiz_answers = null;
     if (req.body.quiz_answers) {
@@ -821,9 +839,9 @@ app.post('/api/register', parseForm, async (req, res) => {
 
     try {
         await pool.query(
-            `INSERT INTO landing_waitlist (email, center_name, lang, phone, preferred_contact, org_type, students_count, source, quiz_answers)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-            [email, center_name, lang || null, phone, preferred_contact, org_type, students_count, source, quiz_answers ? JSON.stringify(quiz_answers) : null]
+            `INSERT INTO landing_waitlist (email, center_name, lang, phone, preferred_contact, org_type, students_count, source, quiz_answers, ref_code)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+            [email, center_name, lang || null, phone, preferred_contact, org_type, students_count, source, quiz_answers ? JSON.stringify(quiz_answers) : null, ref_code || null]
         );
         dbOk = true;
     } catch (err) {
@@ -831,7 +849,7 @@ app.post('/api/register', parseForm, async (req, res) => {
     }
 
     try {
-        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, preferred_contact, org_type, students_count, source, quiz_answers, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer });
+        const sent = await sendRegistrationEmail({ email, center_name, lang, phone, preferred_contact, org_type, students_count, source, quiz_answers, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, landing_page, referrer, ref_code });
         if (sent) emailOk = true;
     } catch (err) {
         console.error('Error sending registration email:', err.message || err);
@@ -867,7 +885,7 @@ app.post('/api/register', parseForm, async (req, res) => {
 
         // Fire-and-forget: создать лида в Notion CRM
         if (dbOk) {
-            createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign })
+            createNotionLead({ email, center_name, phone, lang, org_type, students_count, utm_source, utm_medium, utm_campaign, ref_code })
                 .catch(err => console.error('Notion createLead error:', err.message));
         }
 
@@ -1863,6 +1881,81 @@ app.get('/admin', isAdmin, (req, res) => {
         currentPath: '/admin',
         currentLanguage: language
     });
+});
+
+// ─── Партнёры / реферальные ссылки ────────────────────────────────────────
+app.get('/admin/partners', isAdmin, (req, res) => {
+    res.render('partners', {
+        pageTitle: 'Партнёры | Admin Panel',
+        currentPath: '/admin/partners',
+        currentLanguage: 'ru'
+    });
+});
+
+function slugifyRefCode(name) {
+    const cyrillicToLatin = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+        'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+        'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
+        'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
+        'я': 'ya', 'є': 'ye', 'і': 'i', 'ї': 'yi', 'ґ': 'g'
+    };
+    return String(name).toLowerCase()
+        .split('').map(ch => cyrillicToLatin[ch] !== undefined ? cyrillicToLatin[ch] : ch).join('')
+        .replace(/[^\w\s-]/g, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+app.get('/api/admin/partners', isAdminApi, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT p.id, p.name, p.ref_code, p.notes, p.created_at,
+                   COUNT(w.id) AS leads_count
+            FROM partners p
+            LEFT JOIN landing_waitlist w ON w.ref_code = p.ref_code
+            GROUP BY p.id
+            ORDER BY p.created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error fetching partners:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.post('/api/admin/partners', isAdminApi, async (req, res) => {
+    const { name, notes } = req.body;
+    if (!name || !name.trim()) {
+        return res.status(400).json({ error: 'Имя партнёра обязательно' });
+    }
+    let baseCode = slugifyRefCode(name) || 'partner';
+    let refCode = baseCode;
+    try {
+        for (let i = 1; i <= 50; i++) {
+            const existing = await pool.query('SELECT 1 FROM partners WHERE ref_code = $1', [refCode]);
+            if (existing.rows.length === 0) break;
+            refCode = `${baseCode}-${i + 1}`;
+        }
+        const result = await pool.query(
+            `INSERT INTO partners (name, ref_code, notes) VALUES ($1, $2, $3) RETURNING *`,
+            [name.trim(), refCode, notes || null]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('Error creating partner:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+app.delete('/api/admin/partners/:id', isAdminApi, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM partners WHERE id = $1', [req.params.id]);
+        res.status(204).end();
+    } catch (err) {
+        console.error('Error deleting partner:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
 });
 
 

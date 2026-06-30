@@ -18,6 +18,22 @@
     </script>
     <noscript><img height="1" width="1" style="display:none"
             src="https://www.facebook.com/tr?id=1427039129205224&ev=PageView&noscript=1" /></noscript>
+    <!-- UTM Capture Script (consistent with /uk/index.html — needed if quiz is the landing page, e.g. direct ref links) -->
+    <script>
+    (function() {
+      var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ref'];
+      var urlParams = new URLSearchParams(window.location.search);
+      params.forEach(function(param) {
+        if (urlParams.get(param)) {
+          localStorage.setItem(param, urlParams.get(param));
+        }
+      });
+      localStorage.setItem('landing_page', window.location.pathname);
+      if (document.referrer) {
+        localStorage.setItem('referrer', document.referrer);
+      }
+    })();
+    </script>
     <meta charset="UTF-8">
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -128,6 +144,7 @@
                 <input type="hidden" name="fbclid" id="quiz_fbclid">
                 <input type="hidden" name="landing_page" id="quiz_landing_page">
                 <input type="hidden" name="referrer" id="quiz_referrer">
+                <input type="hidden" name="ref" id="quiz_ref">
                 <input type="hidden" name="lead_source" value="quiz">
                 <button type="submit" class="btn quiz-btn" id="quiz-submit-btn">ОТРИМАТИ РЕЗУЛЬТАТИ →</button>
                 <div id="quiz-form-message"></div>
@@ -235,7 +252,7 @@ function selectAnswer(qIdx, optIdx, optText, btn) {
 }
 
 function fillQuizUTMFields() {
-    var fields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer'];
+    var fields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer', 'ref'];
     fields.forEach(function(field) {
         var el = document.getElementById('quiz_' + field);
         if (el) el.value = localStorage.getItem(field) || '';

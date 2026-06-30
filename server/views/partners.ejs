@@ -1,0 +1,121 @@
+<%- include('partials/header', { isAdmin: true }) %>
+
+    <div class="admin-container">
+        <h1>Партнёры и реферальные ссылки</h1>
+        <p style="color:#666;margin-bottom:20px;">
+            <a href="/admin">&larr; К управлению блогом</a>
+        </p>
+
+        <div class="form-group" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:30px;flex-wrap:wrap;">
+            <div>
+                <label>Название партнёра</label>
+                <input type="text" id="partner-name" placeholder="ЦСИП / Insight School (Казахстан)" style="min-width:280px;">
+            </div>
+            <div>
+                <label>Заметка (необязательно)</label>
+                <input type="text" id="partner-notes" placeholder="Договор амбассадора, Казахстан">
+            </div>
+            <button class="btn btn-primary" onclick="createPartner()">+ Добавить партнёра</button>
+        </div>
+
+        <div id="partners-list">Loading...</div>
+    </div>
+
+    <script>
+        const LANGS = ['ru', 'uk', 'en', 'pl', 'cs'];
+        const BASE_URL = 'https://neuro.educatimo.com';
+        let partners = [];
+
+        document.addEventListener('DOMContentLoaded', loadPartners);
+
+        async function loadPartners() {
+            try {
+                const res = await fetch('/api/admin/partners');
+                partners = await res.json();
+                renderPartners();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('partners-list').innerHTML = '<p>Ошибка загрузки.</p>';
+            }
+        }
+
+        function renderPartners() {
+            const list = document.getElementById('partners-list');
+            if (!partners.length) {
+                list.innerHTML = '<p>Партнёров пока нет.</p>';
+                return;
+            }
+            list.innerHTML = partners.map(p => {
+                const links = LANGS.map(l => `${BASE_URL}/${l}/?ref=${p.ref_code}`).join('\n');
+                return `
+                <div class="article-list-item" style="flex-direction:column;align-items:flex-start;gap:8px;padding:16px;">
+                    <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+                        <div>
+                            <strong>${escapeHtml(p.name)}</strong>
+                            <span style="color:#666;font-size:0.85em;margin-left:10px;">код: <code>${p.ref_code}</code></span>
+                            <span style="color:#229ED9;font-size:0.85em;margin-left:10px;">заявок: ${p.leads_count}</span>
+                        </div>
+                        <div>
+                            <button class="btn-small btn-primary" onclick="copyLink('${p.ref_code}')">Копировать ссылку (RU)</button>
+                            <button class="btn-small btn-danger" onclick="deletePartner(${p.id})">Удалить</button>
+                        </div>
+                    </div>
+                    ${p.notes ? `<div style="color:#888;font-size:0.85em;">${escapeHtml(p.notes)}</div>` : ''}
+                    <details style="width:100%;">
+                        <summary style="cursor:pointer;color:#666;font-size:0.85em;">Все языковые ссылки</summary>
+                        <pre style="font-size:12px;background:#f7f7f7;padding:10px;border-radius:6px;white-space:pre-wrap;">${links}</pre>
+                    </details>
+                </div>`;
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        async function createPartner() {
+            const name = document.getElementById('partner-name').value.trim();
+            const notes = document.getElementById('partner-notes').value.trim();
+            if (!name) { alert('Укажите имя партнёра'); return; }
+            try {
+                const res = await fetch('/api/admin/partners', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, notes })
+                });
+                if (res.ok) {
+                    document.getElementById('partner-name').value = '';
+                    document.getElementById('partner-notes').value = '';
+                    loadPartners();
+                } else {
+                    const err = await res.json();
+                    alert('Ошибка: ' + (err.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка сети');
+            }
+        }
+
+        async function deletePartner(id) {
+            if (!confirm('Удалить партнёра? Старые заявки в базе сохранятся, но новые по этой ссылке перестанут засчитываться.')) return;
+            try {
+                await fetch(`/api/admin/partners/${id}`, { method: 'DELETE' });
+                loadPartners();
+            } catch (err) {
+                console.error(err);
+                alert('Ошибка удаления');
+            }
+        }
+
+        function copyLink(refCode) {
+            const url = `${BASE_URL}/ru/?ref=${refCode}`;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Скопировано:\n' + url);
+            });
+        }
+    </script>
+
+<%- include('partials/footer', { isAdmin: true }) %>
