@@ -3027,21 +3027,6 @@ app.get('/admin/partners', isAdmin, (req, res) => {
     });
 });
 
-function slugifyRefCode(name) {
-    const cyrillicToLatin = {
-        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
-        'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
-        'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts',
-        'ч': 'ch', 'ш': 'sh', 'щ': 'shch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu',
-        'я': 'ya', 'є': 'ye', 'і': 'i', 'ї': 'yi', 'ґ': 'g'
-    };
-    return String(name).toLowerCase()
-        .split('').map(ch => cyrillicToLatin[ch] !== undefined ? cyrillicToLatin[ch] : ch).join('')
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-}
-
 app.get('/api/admin/partners', isAdminApi, async (req, res) => {
     try {
         const result = await pool.query(`
@@ -3059,18 +3044,21 @@ app.get('/api/admin/partners', isAdminApi, async (req, res) => {
     }
 });
 
+function generateNumericRefCode() {
+    return String(Math.floor(100000 + Math.random() * 900000)); // 6 цифр, без ведущего нуля
+}
+
 app.post('/api/admin/partners', isAdminApi, async (req, res) => {
     const { name, notes } = req.body;
     if (!name || !name.trim()) {
         return res.status(400).json({ error: 'Имя партнёра обязательно' });
     }
-    let baseCode = slugifyRefCode(name) || 'partner';
-    let refCode = baseCode;
+    let refCode = generateNumericRefCode();
     try {
-        for (let i = 1; i <= 50; i++) {
+        for (let i = 0; i < 50; i++) {
             const existing = await pool.query('SELECT 1 FROM partners WHERE ref_code = $1', [refCode]);
             if (existing.rows.length === 0) break;
-            refCode = `${baseCode}-${i + 1}`;
+            refCode = generateNumericRefCode();
         }
         const result = await pool.query(
             `INSERT INTO partners (name, ref_code, notes) VALUES ($1, $2, $3) RETURNING *`,
