@@ -30,7 +30,7 @@
     <!-- UTM Capture Script -->
     <script>
     (function() {
-      var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
+      var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ref'];
       var urlParams = new URLSearchParams(window.location.search);
       params.forEach(function(param) {
         if (urlParams.get(param)) {
@@ -773,6 +773,7 @@
                     <input type="hidden" name="fbclid" id="fbclid">
                     <input type="hidden" name="landing_page" id="landing_page">
                     <input type="hidden" name="referrer" id="referrer">
+                    <input type="hidden" name="ref" id="ref">
                     <button type="submit" class="btn">Request a Demo (15 min)</button>
                     <p class="small-text">We will notify you by email as soon as the platform is ready for the pilot
                         group launch. Participation in the pilot is free and carries no obligations.</p>
@@ -1023,7 +1024,7 @@
     <!-- UTM Form Filler Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-      var utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer'];
+      var utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer', 'ref'];
       utmFields.forEach(function(field) {
         var el = document.getElementById(field);
         if (el) {

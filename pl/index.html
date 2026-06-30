@@ -30,7 +30,7 @@
     <!-- UTM Capture Script -->
     <script>
     (function() {
-      var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid'];
+      var params = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'ref'];
       var urlParams = new URLSearchParams(window.location.search);
       params.forEach(function(param) {
         if (urlParams.get(param)) {
@@ -774,6 +774,7 @@
                     <input type="hidden" name="fbclid" id="fbclid">
                     <input type="hidden" name="landing_page" id="landing_page">
                     <input type="hidden" name="referrer" id="referrer">
+                    <input type="hidden" name="ref" id="ref">
                     <button type="submit" class="btn">Zamów demonstrację (15 min)</button>
                     <p class="small-text">Wysyłając zgłoszenie, akceptujesz warunki uczestnictwa w programie pilotażowym. Udział jest bezpłatny i nie wiąże się z żadnymi zobowiązaniami.</p>
                     <div id="form-message-pl" style="margin-top: 15px;"></div>
@@ -1023,7 +1024,7 @@
     <!-- UTM Form Filler Script -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-      var utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer'];
+      var utmFields = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'landing_page', 'referrer', 'ref'];
       utmFields.forEach(function(field) {
         var el = document.getElementById(field);
         if (el) {
