@@ -1743,14 +1743,15 @@ app.post('/api/store-calendly-event', async (req, res) => {
                 },
             };
             const m = MSGS[langKey] || MSGS.uk;
+            const leadZoomLine = zoomUrl ? `\n\n🔗 Zoom: ${zoomUrl}` : '';
             const demoConfirmMarkup = JSON.stringify({ inline_keyboard: [[
                 { text: '\u2705 \u0411\u0443\u0434\u0443 \u043d\u0430 \u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0456', callback_data: 'demo_confirm' },
                 { text: '\uD83D\uDCC5 \u0425\u043e\u0447\u0443 \u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438', callback_data: 'demo_reschedule' }
             ]] });
             const inserts = [
-                [tgId, remind24,  m.h24,  'reminder',    null],
-                [tgId, remind1,   m.h1,   'reminder_h1', demoConfirmMarkup],
-                [tgId, remind15,  m.m15,  'reminder_m15',demoConfirmMarkup],
+                [tgId, remind24,  m.h24 + leadZoomLine, 'reminder',     null],
+                [tgId, remind1,   m.h1 + leadZoomLine,  'reminder_h1',  demoConfirmMarkup],
+                [tgId, remind15,  m.m15 + leadZoomLine, 'reminder_m15', demoConfirmMarkup],
                 [tgId, afterDemo, m.after,'reminder',    null],
             ];
             for (const [id, time, msg, type, markup] of inserts) {
@@ -2489,7 +2490,7 @@ ${demoAlreadyHeld ? `## ПОТОЧНА МЕТА: старт 7-денного т�
 
         // Найти лид по токену
         const found = await pool.query(
-            `SELECT id, email, center_name, lang, calendly_start_time, students_count, trial_pending
+            `SELECT id, email, center_name, lang, calendly_start_time, zoom_url, students_count, trial_pending
              FROM landing_waitlist
              WHERE tg_start_token = $1
              LIMIT 1`,
@@ -2609,6 +2610,7 @@ ${demoAlreadyHeld ? `## ПОТОЧНА МЕТА: старт 7-денного т�
                 },
             };
             const rm = REMINDER_MSGS[langKey] || REMINDER_MSGS.uk;
+            const leadZoomLine = lead.zoom_url ? `\n\n🔗 Zoom: ${lead.zoom_url}` : '';
             const demoConfirmMarkupWh = JSON.stringify({ inline_keyboard: [[
                 { text: '\u2705 \u0411\u0443\u0434\u0443 \u043d\u0430 \u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0456', callback_data: 'demo_confirm' },
                 { text: '\uD83D\uDCC5 \u0425\u043e\u0447\u0443 \u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438', callback_data: 'demo_reschedule' }
@@ -2616,19 +2618,19 @@ ${demoAlreadyHeld ? `## ПОТОЧНА МЕТА: старт 7-денного т�
             if (remind24 > new Date()) {
                 await pool.query(
                     `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'reminder')`,
-                    [tgId, remind24.toISOString(), rm.h24]
+                    [tgId, remind24.toISOString(), rm.h24 + leadZoomLine]
                 );
             }
             if (remind1 > new Date()) {
                 await pool.query(
                     `INSERT INTO scheduled_messages (telegram_id, send_at, message, type, reply_markup) VALUES ($1, $2, $3, 'reminder_h1', $4)`,
-                    [tgId, remind1.toISOString(), rm.h1, demoConfirmMarkupWh]
+                    [tgId, remind1.toISOString(), rm.h1 + leadZoomLine, demoConfirmMarkupWh]
                 );
             }
             if (remind15 > new Date()) {
                 await pool.query(
                     `INSERT INTO scheduled_messages (telegram_id, send_at, message, type, reply_markup) VALUES ($1, $2, $3, 'reminder_m15', $4)`,
-                    [tgId, remind15.toISOString(), rm.m15, demoConfirmMarkupWh]
+                    [tgId, remind15.toISOString(), rm.m15 + leadZoomLine, demoConfirmMarkupWh]
                 );
             }
             // Пост-демо: через 1.5 часа после начала
