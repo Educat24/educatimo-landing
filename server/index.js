@@ -39,6 +39,13 @@ const {
     isMatchingSecret,
     parseDemoNoShowCallback,
 } = require('./demo-no-show');
+const {
+    ADMIN_IMAGE_LIMITS,
+    REGISTRATION_FORM_LIMITS,
+    escapeHtml,
+    getSafeImageExtension,
+    sanitizeEmailSubject
+} = require('./security-input');
 
 const app = express();
 const port = Number.parseInt(process.env.PORT || '3000', 10);
@@ -54,8 +61,8 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '100kb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '100kb', parameterLimit: 100 }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Multer Storage Configuration
@@ -66,12 +73,23 @@ const storage = multer.diskStorage({
     filename: function (req, file, cb) {
         // Unique filename: timestamp-originalName
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        cb(null, uniqueSuffix + getSafeImageExtension(file));
     }
 });
 
-const upload = multer({ storage: storage });
-const parseForm = multer().none(); // for multipart form without files (registration form)
+const upload = multer({
+    storage,
+    limits: ADMIN_IMAGE_LIMITS,
+    fileFilter: (req, file, cb) => {
+        if (!getSafeImageExtension(file)) {
+            const error = new Error('Unsupported image type');
+            error.code = 'UNSUPPORTED_IMAGE_TYPE';
+            return cb(error);
+        }
+        cb(null, true);
+    }
+});
+const parseForm = multer({ limits: REGISTRATION_FORM_LIMITS }).none(); // multipart form without files
 
 function toIsoLang(lang) {
     if (lang === 'ua') return 'uk';
@@ -371,13 +389,16 @@ async function sendRegistrationEmail(data) {
     const contactMap = { telegram: 'Telegram', whatsapp: 'WhatsApp' };
     const transporter = nodemailer.createTransport({
         service: 'gmail',
-        auth: { user, pass }
+        auth: { user, pass },
+        disableFileAccess: true,
+        disableUrlAccess: true
     });
+    const htmlValue = value => escapeHtml(value || '—');
     const quizSection = quiz_answers
         ? `\n\nВідповіді квізу:\n${Object.entries(quiz_answers).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`
         : '';
     const quizHtml = quiz_answers
-        ? `<tr><td><strong>Відповіді квізу:</strong></td><td><pre style="font-size:12px">${JSON.stringify(quiz_answers, null, 2)}</pre></td></tr>`
+        ? `<tr><td><strong>Відповіді квізу:</strong></td><td><pre style="font-size:12px">${escapeHtml(JSON.stringify(quiz_answers, null, 2))}</pre></td></tr>`
         : '';
     const hasUtm = utm_source || utm_medium || utm_campaign || utm_content || utm_term || fbclid;
     const utmSection = hasUtm
@@ -385,38 +406,40 @@ async function sendRegistrationEmail(data) {
         : '';
     const utmHtml = hasUtm
         ? `<tr><td colspan="2" style="padding:8px 12px 2px;color:#666;font-size:12px;border-top:1px solid #eee"><em>UTM / Джерело трафіку</em></td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_source</td><td style="padding:3px 12px;font-size:12px">${utm_source || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_medium</td><td style="padding:3px 12px;font-size:12px">${utm_medium || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_campaign</td><td style="padding:3px 12px;font-size:12px">${utm_campaign || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_content</td><td style="padding:3px 12px;font-size:12px">${utm_content || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_term</td><td style="padding:3px 12px;font-size:12px">${utm_term || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">fbclid</td><td style="padding:3px 12px;font-size:12px">${fbclid || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">landing_page</td><td style="padding:3px 12px;font-size:12px">${landing_page || '—'}</td></tr>
-            <tr><td style="padding:3px 12px;color:#888;font-size:12px">referrer</td><td style="padding:3px 12px;font-size:12px">${referrer || '—'}</td></tr>`
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_source</td><td style="padding:3px 12px;font-size:12px">${htmlValue(utm_source)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_medium</td><td style="padding:3px 12px;font-size:12px">${htmlValue(utm_medium)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_campaign</td><td style="padding:3px 12px;font-size:12px">${htmlValue(utm_campaign)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_content</td><td style="padding:3px 12px;font-size:12px">${htmlValue(utm_content)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">utm_term</td><td style="padding:3px 12px;font-size:12px">${htmlValue(utm_term)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">fbclid</td><td style="padding:3px 12px;font-size:12px">${htmlValue(fbclid)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">landing_page</td><td style="padding:3px 12px;font-size:12px">${htmlValue(landing_page)}</td></tr>
+            <tr><td style="padding:3px 12px;color:#888;font-size:12px">referrer</td><td style="padding:3px 12px;font-size:12px">${htmlValue(referrer)}</td></tr>`
         : '';
     const refSection = ref_code ? `\nРеферальный код (амбассадор): ${ref_code}` : '';
     const refHtml = ref_code
-        ? `<tr><td style="padding:6px 12px;color:#666;background:#fff8e1">Реферальный код:</td><td style="padding:6px 12px;background:#fff8e1"><strong>${ref_code}</strong></td></tr>`
+        ? `<tr><td style="padding:6px 12px;color:#666;background:#fff8e1">Реферальный код:</td><td style="padding:6px 12px;background:#fff8e1"><strong>${htmlValue(ref_code)}</strong></td></tr>`
         : '';
     await transporter.sendMail({
         from: user,
         to,
-        subject: `Нова реєстрація: ${center_name}`,
+        subject: `Нова реєстрація: ${sanitizeEmailSubject(center_name)}`,
         text: `Нова заявка з лендингу:\n\nОрганізація: ${center_name}\nEmail: ${email}\nТелефон: ${phone || '—'}\nМесенджер: ${contactMap[preferred_contact] || preferred_contact || '—'}\nТип закладу: ${orgTypeMap[org_type] || org_type || '—'}\nКількість учнів: ${studentsMap[students_count] || students_count || '—'}\nМова: ${langLabel}\nДжерело: ${sourceLabel}\nДата: ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}${refSection}${utmSection}${quizSection}`,
         html: `<table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
-            <tr><td style="padding:6px 12px;color:#666">Організація:</td><td style="padding:6px 12px"><strong>${center_name}</strong></td></tr>
-            <tr><td style="padding:6px 12px;color:#666">Email:</td><td style="padding:6px 12px">${email}</td></tr>
-            <tr><td style="padding:6px 12px;color:#666">Телефон:</td><td style="padding:6px 12px">${phone || '—'}</td></tr>
-            <tr><td style="padding:6px 12px;color:#666">Месенджер:</td><td style="padding:6px 12px">${contactMap[preferred_contact] || preferred_contact || '—'}</td></tr>
-            <tr><td style="padding:6px 12px;color:#666">Тип закладу:</td><td style="padding:6px 12px">${orgTypeMap[org_type] || org_type || '—'}</td></tr>
-            <tr><td style="padding:6px 12px;color:#666">К-сть учнів:</td><td style="padding:6px 12px">${studentsMap[students_count] || students_count || '—'}</td></tr>
-            <tr><td style="padding:6px 12px;color:#666">Мова:</td><td style="padding:6px 12px">${langLabel}</td></tr>
-            <tr><td style="padding:6px 12px;color:#666">Джерело:</td><td style="padding:6px 12px">${sourceLabel}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Організація:</td><td style="padding:6px 12px"><strong>${htmlValue(center_name)}</strong></td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Email:</td><td style="padding:6px 12px">${htmlValue(email)}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Телефон:</td><td style="padding:6px 12px">${htmlValue(phone)}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Месенджер:</td><td style="padding:6px 12px">${htmlValue(contactMap[preferred_contact] || preferred_contact)}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Тип закладу:</td><td style="padding:6px 12px">${htmlValue(orgTypeMap[org_type] || org_type)}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">К-сть учнів:</td><td style="padding:6px 12px">${htmlValue(studentsMap[students_count] || students_count)}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Мова:</td><td style="padding:6px 12px">${htmlValue(langLabel)}</td></tr>
+            <tr><td style="padding:6px 12px;color:#666">Джерело:</td><td style="padding:6px 12px">${htmlValue(sourceLabel)}</td></tr>
             <tr><td style="padding:6px 12px;color:#666">Дата:</td><td style="padding:6px 12px">${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' })}</td></tr>
             ${refHtml}
             ${utmHtml}
             ${quizHtml}
-        </table>`
+        </table>`,
+        disableFileAccess: true,
+        disableUrlAccess: true
     });
     console.log('Registration email sent to', to);
     return true;
@@ -3687,6 +3710,21 @@ if (process.env.BACKGROUND_JOBS_ENABLED !== 'false') setInterval(async () => {
         console.error('TG cron error:', err.message);
     }
 }, 60_000); // каждую минуту
+
+// Return bounded, non-sensitive errors for rejected request bodies and multipart input.
+app.use((err, req, res, next) => {
+    if (err?.type === 'entity.too.large') {
+        return res.status(413).json({ error: 'Request body is too large' });
+    }
+    if (err instanceof multer.MulterError) {
+        const status = err.code === 'LIMIT_UNEXPECTED_FILE' ? 400 : 413;
+        return res.status(status).json({ error: 'Multipart request exceeds allowed limits' });
+    }
+    if (err?.code === 'UNSUPPORTED_IMAGE_TYPE') {
+        return res.status(415).json({ error: 'Only JPG, JPEG, PNG and WEBP images are allowed' });
+    }
+    next(err);
+});
 
 // Start server
 app.listen(port, async () => {
