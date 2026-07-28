@@ -32,9 +32,16 @@ const pgSession = require('connect-pg-simple')(session);
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { KEYWORD_MAPS, TERMS } = require('./seo_config');
+const {
+    buildLeadRebookMessage,
+    deriveTelegramWebhookSecret,
+    escapeTelegramHtml,
+    isMatchingSecret,
+    parseDemoNoShowCallback,
+} = require('./demo-no-show');
 
 const app = express();
-const port = 3000;
+const port = Number.parseInt(process.env.PORT || '3000', 10);
 
 // Database configuration (DATABASE_URL on production)
 if (!process.env.DATABASE_URL) {
@@ -266,7 +273,24 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'related_send_at') THEN
                     ALTER TABLE scheduled_messages ADD COLUMN related_send_at TIMESTAMPTZ DEFAULT NULL;
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'demo_outcome_id') THEN
+                    ALTER TABLE scheduled_messages ADD COLUMN demo_outcome_id INTEGER DEFAULT NULL;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'scheduled_messages' AND column_name = 'telegram_message_id') THEN
+                    ALTER TABLE scheduled_messages ADD COLUMN telegram_message_id BIGINT DEFAULT NULL;
+                END IF;
             END $$;
+
+            CREATE TABLE IF NOT EXISTS demo_outcomes (
+                id SERIAL PRIMARY KEY,
+                lead_id INTEGER NOT NULL,
+                demo_start_time TIMESTAMPTZ NOT NULL,
+                status VARCHAR(20) NOT NULL DEFAULT 'booked',
+                resolved_at TIMESTAMPTZ DEFAULT NULL,
+                resolved_by_telegram_id BIGINT DEFAULT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE (lead_id, demo_start_time)
+            );
 
             CREATE TABLE IF NOT EXISTS tg_conversations (
                 id SERIAL PRIMARY KEY,
@@ -770,6 +794,31 @@ async function updateNotionLeadReschedule(email) {
     else console.warn(`Notion: reschedule props update failed email=${email}`);
 }
 
+// Зафиксировать no-show и вернуть лида на шаг повторного назначения демо.
+async function updateNotionLeadNoShow(email, demoStartTime) {
+    const pageId = await findNotionPageByEmail(email);
+    if (!pageId) { console.warn(`Notion no-show: page not found email=${email}`); return; }
+    const recordedAt = new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kiev' });
+    const demoAt = new Date(demoStartTime).toLocaleString('uk-UA', {
+        timeZone: 'Europe/Kiev', day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    });
+    await notionRequest('PATCH', `/blocks/${pageId}/children`, {
+        children: [{ object: 'block', type: 'callout', callout: {
+            icon: { type: 'emoji', emoji: '❌' },
+            rich_text: [{ type: 'text', text: {
+                content: `${recordedAt} — Лід не прийшов на демо, заплановане на ${demoAt}. Надіслано повторне запрошення Calendly.`
+            } }]
+        }}]
+    });
+    const result = await notionRequest('PATCH', `/pages/${pageId}`, { properties: {
+        'Этап':     { status: { name: 'Перенос ДЕМО' } },
+        'След шаг': { select: { name: 'Назначить демо' } },
+    }});
+    if (result) console.log(`Notion: demo no-show recorded email=${email}`);
+    else console.warn(`Notion: demo no-show props update failed email=${email}`);
+}
+
 // Обновить Notion когда лид выбрал когда ему напомнить
 async function updateNotionLeadRescheduleChoice(email, choice) {
     const pageId = await findNotionPageByEmail(email);
@@ -834,11 +883,57 @@ async function sendTelegramMessage(chatId, text, replyMarkup = null) {
             body: JSON.stringify(payload)
         });
         const json = await resp.json();
-        if (!json.ok) console.error('TG sendMessage error:', json.description);
-        else console.log(`TG: message sent to ${chatId}`);
+        if (!json.ok) {
+            console.error('TG sendMessage error:', json.description);
+            return null;
+        }
+        console.log(`TG: message sent to ${chatId}`);
+        return json.result || null;
     } catch (err) {
         console.error('TG sendMessage exception:', err.message);
+        return null;
     }
+}
+
+async function clearTelegramInlineKeyboard(chatId, messageId) {
+    const token = process.env.TELEGRAM_BOT_TOKEN;
+    if (!token || !chatId || !messageId) return false;
+    try {
+        const resp = await fetch(`https://api.telegram.org/bot${token}/editMessageReplyMarkup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, message_id: messageId, reply_markup: { inline_keyboard: [] } })
+        });
+        const json = await resp.json();
+        if (!json.ok && !String(json.description || '').includes('message is not modified')) {
+            console.error('TG editMessageReplyMarkup error:', json.description);
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error('TG editMessageReplyMarkup exception:', err.message);
+        return false;
+    }
+}
+
+function getAdminTelegramIds() {
+    return [...new Set([
+        process.env.TELEGRAM_ADMIN_ID,
+        process.env.TELEGRAM_ADMIN_ALEXANDRA_ID,
+    ].filter(Boolean).map(String))];
+}
+
+function getTelegramWebhookSecret() {
+    return deriveTelegramWebhookSecret(
+        process.env.TELEGRAM_WEBHOOK_SECRET,
+        process.env.TELEGRAM_BOT_TOKEN
+    );
+}
+
+function isAuthorizedTelegramWebhook(req) {
+    const expected = getTelegramWebhookSecret();
+    const received = req.get('X-Telegram-Bot-Api-Secret-Token') || '';
+    return isMatchingSecret(expected, received);
 }
 
 async function answerCallbackQuery(callbackQueryId, text = '') {
@@ -1678,11 +1773,26 @@ app.post('/api/store-calendly-event', async (req, res) => {
         }
 
         // Зберегти в БД
-        await pool.query(
+        const updatedLead = await pool.query(
             `UPDATE landing_waitlist SET calendly_event_uri = $1, calendly_start_time = $2, zoom_url = $4
-             WHERE id = (SELECT id FROM landing_waitlist WHERE email = $3 ORDER BY created_at DESC LIMIT 1)`,
+             WHERE id = (SELECT id FROM landing_waitlist WHERE email = $3 ORDER BY created_at DESC LIMIT 1)
+             RETURNING id`,
             [event_uri, startTime, email, zoomUrl]
         );
+        if (!updatedLead.rows.length) {
+            console.warn(`store-calendly-event: lead not found email=${email}`);
+            return res.json({ ok: true });
+        }
+        const leadId = updatedLead.rows[0].id;
+        const demoOutcome = await pool.query(
+            `INSERT INTO demo_outcomes (lead_id, demo_start_time, status)
+             VALUES ($1, $2, 'booked')
+             ON CONFLICT (lead_id, demo_start_time)
+             DO UPDATE SET lead_id = EXCLUDED.lead_id
+             RETURNING id, status`,
+            [leadId, startTime]
+        );
+        const demoOutcomeId = demoOutcome.rows[0].id;
 
         // Якщо лід вже підключив бота — скасувати follow-up "не записався" і запланувати нагадування
         const leadRow = await pool.query(
@@ -1776,7 +1886,7 @@ app.post('/api/store-calendly-event', async (req, res) => {
         });
         // Найти данные организации
         const demoOrgRow = await pool.query(
-            `SELECT center_name, telegram_id FROM landing_waitlist WHERE email = $1 ORDER BY created_at DESC LIMIT 1`,
+            `SELECT id, center_name, telegram_id FROM landing_waitlist WHERE email = $1 ORDER BY created_at DESC LIMIT 1`,
             [email]
         );
         const demoOrg = demoOrgRow.rows[0]?.center_name || email;
@@ -1795,19 +1905,25 @@ app.post('/api/store-calendly-event', async (req, res) => {
         const remind5admin  = new Date(new Date(startTime).getTime() -  5 * 60 * 1000);
         const adminReminderMsg = `\uD83D\uDD14 <b>\u041d\u0430\u0433\u0430\u0434\u0443\u0432\u0430\u043d\u043d\u044f!</b> \u0417\u0430 30 \u0445\u0432\u0438\u043b\u0438\u043d \u0434\u0435\u043c\u043e \u0437 <b>${demoOrg}</b> (${email})${zoomLine}`;
         const adminReminder5Msg = `\u23F0 <b>\u0417\u0430 5 \u0445\u0432\u0438\u043b\u0438\u043d</b> \u0434\u0435\u043c\u043e \u0437 <b>${demoOrg}</b>!${zoomLine}`;
-        for (const aId of [adminTgId, admin2TgId].filter(Boolean)) {
+        const adminNoShowMarkup = JSON.stringify({ inline_keyboard: [[{
+            text: '\u274C \u041b\u0456\u0434 \u043d\u0435 \u043f\u0440\u0438\u0439\u0448\u043e\u0432',
+            callback_data: `demo_no_show:${demoOutcomeId}`
+        }]] });
+        for (const aId of getAdminTelegramIds()) {
             if (remind30admin > new Date()) {
                 await pool.query(
-                    `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'admin_demo_remind')`,
-                    [aId, remind30admin.toISOString(), adminReminderMsg]
+                    `INSERT INTO scheduled_messages (telegram_id, send_at, message, type, demo_outcome_id)
+                     VALUES ($1, $2, $3, 'admin_demo_remind', $4)`,
+                    [aId, remind30admin.toISOString(), adminReminderMsg, demoOutcomeId]
                 );
             }
-            if (remind5admin > new Date()) {
-                await pool.query(
-                    `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'admin_demo_remind')`,
-                    [aId, remind5admin.toISOString(), adminReminder5Msg]
-                );
-            }
+            const noShowActionAt = remind5admin > new Date() ? remind5admin : new Date();
+            await pool.query(
+                `INSERT INTO scheduled_messages
+                    (telegram_id, send_at, message, type, reply_markup, demo_outcome_id)
+                 VALUES ($1, $2, $3, 'admin_demo_remind', $4, $5)`,
+                [aId, noShowActionAt.toISOString(), adminReminder5Msg, adminNoShowMarkup, demoOutcomeId]
+            );
         }
 
         console.log(`Calendly event stored: email=${email} start_time=${startTime} zoom=${zoomUrl || 'none'}`);
@@ -2038,6 +2154,9 @@ app.post('/api/tg-invite-link', async (req, res) => {
 // --- Telegram Webhook: обработать входящие обновления от бота ---
 // Telegram присылает POST сюда когда лид нажимает /start TOKEN
 app.post('/api/tg-webhook', async (req, res) => {
+    if (!isAuthorizedTelegramWebhook(req)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
     res.json({ ok: true }); // Telegram ждёт 200 немедленно
     try {
         // ── Обработка нажатий inline-кнопок (callback_query) ──────────────────
@@ -2046,6 +2165,130 @@ app.post('/api/tg-webhook', async (req, res) => {
             const cbId = cbq.id;
             const cbData = cbq.data || '';
             const cbTgId = cbq.from?.id;
+
+            // ── Адміністратор фіксує no-show демо ────────────────────────────────
+            const parsedDemoOutcomeId = parseDemoNoShowCallback(cbData);
+            if (parsedDemoOutcomeId) {
+                const adminIds = getAdminTelegramIds();
+                if (!cbTgId || !adminIds.includes(String(cbTgId))) {
+                    await answerCallbackQuery(cbId, 'Ця дія доступна лише адміністратору.');
+                    return;
+                }
+
+                const demoOutcomeId = parsedDemoOutcomeId;
+                const client = await pool.connect();
+                let outcome = null;
+                let actionMessages = [];
+                let rejection = '';
+                try {
+                    await client.query('BEGIN');
+                    const locked = await client.query(
+                        `SELECT d.id, d.status, d.demo_start_time,
+                                l.email, l.center_name, l.lang, l.telegram_id,
+                                l.calendly_start_time AS current_demo_start_time
+                         FROM demo_outcomes d
+                         JOIN landing_waitlist l ON l.id = d.lead_id
+                         WHERE d.id = $1
+                         FOR UPDATE OF d`,
+                        [demoOutcomeId]
+                    );
+                    outcome = locked.rows[0] || null;
+
+                    if (!outcome) {
+                        rejection = 'Подію демо не знайдено.';
+                    } else if (outcome.status !== 'booked') {
+                        rejection = outcome.status === 'no_show'
+                            ? 'No-show уже зафіксовано.'
+                            : 'Ця подія демо вже неактуальна.';
+                    } else if (
+                        !outcome.current_demo_start_time ||
+                        new Date(outcome.current_demo_start_time).getTime() !== new Date(outcome.demo_start_time).getTime()
+                    ) {
+                        rejection = 'Це старе демо — у ліда вже інша дата.';
+                    } else if (new Date(outcome.demo_start_time).getTime() > Date.now()) {
+                        rejection = 'No-show можна відзначити після початку демо.';
+                    } else {
+                        const changed = await client.query(
+                            `UPDATE demo_outcomes
+                             SET status = 'no_show', resolved_at = NOW(), resolved_by_telegram_id = $2
+                             WHERE id = $1 AND status = 'booked'
+                             RETURNING id`,
+                            [demoOutcomeId, cbTgId]
+                        );
+                        if (!changed.rows.length) {
+                            rejection = 'No-show уже зафіксовано.';
+                        } else {
+                            // Не надсилати старий post-demo текст «як пройшло демо».
+                            if (outcome.telegram_id) {
+                                await client.query(
+                                    `UPDATE scheduled_messages SET sent = TRUE
+                                     WHERE telegram_id = $1
+                                       AND sent = FALSE
+                                       AND type IN ('reminder', 'reminder_h1', 'reminder_m15')
+                                       AND send_at >= $2`,
+                                    [outcome.telegram_id, outcome.demo_start_time]
+                                );
+                            }
+                            // Якщо друге admin-повідомлення ще стоїть у черзі — не надсилати
+                            // вже неактуальну кнопку після того, як перший адміністратор натиснув.
+                            await client.query(
+                                `UPDATE scheduled_messages SET sent = TRUE
+                                 WHERE demo_outcome_id = $1 AND sent = FALSE`,
+                                [demoOutcomeId]
+                            );
+                            const messageRows = await client.query(
+                                `SELECT telegram_id, telegram_message_id
+                                 FROM scheduled_messages
+                                 WHERE demo_outcome_id = $1 AND telegram_message_id IS NOT NULL`,
+                                [demoOutcomeId]
+                            );
+                            actionMessages = messageRows.rows;
+                        }
+                    }
+                    await client.query('COMMIT');
+                } catch (err) {
+                    await client.query('ROLLBACK').catch(() => {});
+                    console.error(`TG demo_no_show transaction error outcome=${demoOutcomeId}:`, err.message);
+                    rejection = 'Не вдалося зберегти. Спробуйте ще раз.';
+                } finally {
+                    client.release();
+                }
+
+                if (rejection) {
+                    await answerCallbackQuery(cbId, rejection);
+                    return;
+                }
+
+                await answerCallbackQuery(cbId, 'No-show зафіксовано. Ліду надіслано нове запрошення.');
+                await Promise.all(actionMessages.map(row =>
+                    clearTelegramInlineKeyboard(row.telegram_id, row.telegram_message_id)
+                ));
+
+                const leadRebook = buildLeadRebookMessage(outcome.lang, CALENDLY_DEMO_URL);
+                if (outcome.telegram_id) {
+                    await sendTelegramMessage(outcome.telegram_id, leadRebook.text, leadRebook.replyMarkup);
+                } else {
+                    console.warn(`TG demo_no_show: lead has no telegram_id email=${outcome.email}`);
+                }
+
+                await updateNotionLeadNoShow(outcome.email, outcome.demo_start_time)
+                    .catch(err => console.error('Notion no-show error:', err.message));
+
+                const resolvedBy = cbq.from?.username
+                    ? `@${cbq.from.username}`
+                    : (cbq.from?.first_name || String(cbTgId));
+                const adminResult = `\u274C <b>No-show зафіксовано</b>\n\n` +
+                    `\uD83C\uDFE2 <b>${escapeTelegramHtml(outcome.center_name)}</b>\n` +
+                    `\uD83D\uDCE7 ${escapeTelegramHtml(outcome.email)}\n` +
+                    `\uD83D\uDC64 Відзначив: ${escapeTelegramHtml(resolvedBy)}\n\n` +
+                    (outcome.telegram_id
+                        ? '\u2705 Ліду надіслано посилання для повторного запису.'
+                        : '\u26A0\uFE0F У ліда немає Telegram — потрібен ручний контакт.');
+                await Promise.all(adminIds.map(aId => sendTelegramMessage(aId, adminResult)));
+                console.log(`TG demo_no_show: outcome=${demoOutcomeId} resolved_by=${cbTgId}`);
+                return;
+            }
+
             await answerCallbackQuery(cbId);
 
             const nextMatch = cbData.match(/^trial_next_(\d+)$/);
@@ -3299,7 +3542,7 @@ app.post('/api/trial-event', async (req, res) => {
 });
 
 // ─── Cron: отправить запланированные TG-напоминания ─────────────────────────
-setInterval(async () => {
+if (process.env.BACKGROUND_JOBS_ENABLED !== 'false') setInterval(async () => {
     try {
         const result = await pool.query(
             `SELECT id, telegram_id, message, type, reply_markup, related_send_at
@@ -3431,8 +3674,13 @@ setInterval(async () => {
             }
 
             const replyMarkup = row.reply_markup || null;
-            await sendTelegramMessage(row.telegram_id, row.message, replyMarkup);
-            await pool.query(`UPDATE scheduled_messages SET sent = TRUE WHERE id = $1`, [row.id]);
+            const sentMessage = await sendTelegramMessage(row.telegram_id, row.message, replyMarkup);
+            await pool.query(
+                `UPDATE scheduled_messages
+                 SET sent = TRUE, telegram_message_id = $2
+                 WHERE id = $1`,
+                [row.id, sentMessage?.message_id || null]
+            );
         }
         if (result.rows.length) console.log(`TG cron: sent ${result.rows.length} scheduled messages`);
     } catch (err) {
@@ -3446,13 +3694,17 @@ app.listen(port, async () => {
 
     // Зарегистрировать Telegram webhook
     const tgToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (tgToken) {
+    if (tgToken && process.env.TELEGRAM_REGISTER_WEBHOOK !== 'false') {
         try {
-            const webhookUrl = 'https://www.neuro.educatimo.com/api/tg-webhook';
+            const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL || 'https://www.neuro.educatimo.com/api/tg-webhook';
             const resp = await fetch(`https://api.telegram.org/bot${tgToken}/setWebhook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: webhookUrl, allowed_updates: ['message', 'callback_query'] })
+                body: JSON.stringify({
+                    url: webhookUrl,
+                    allowed_updates: ['message', 'callback_query'],
+                    secret_token: getTelegramWebhookSecret()
+                })
             });
             const json = await resp.json();
             if (json.ok) console.log(`TG: webhook registered → ${webhookUrl}`);
@@ -3460,7 +3712,9 @@ app.listen(port, async () => {
         } catch (err) {
             console.error('TG: setWebhook error:', err.message);
         }
-    } else {
+    } else if (!tgToken) {
         console.warn('TG: TELEGRAM_BOT_TOKEN not set, webhook not registered');
+    } else {
+        console.log('TG: webhook registration disabled by TELEGRAM_REGISTER_WEBHOOK=false');
     }
 });
