@@ -228,6 +228,9 @@ const initDb = async () => {
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'zoom_url') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN zoom_url TEXT;
                 END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'zoom_link_sent_at') THEN
+                    ALTER TABLE landing_waitlist ADD COLUMN zoom_link_sent_at TIMESTAMPTZ;
+                END IF;
                 IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'landing_waitlist' AND column_name = 'trial_pending') THEN
                     ALTER TABLE landing_waitlist ADD COLUMN trial_pending BOOLEAN DEFAULT FALSE;
                 END IF;
@@ -746,6 +749,92 @@ async function updateNotionLeadDemo(email, demoDate, zoomUrl = null) {
             }}]
         });
     }
+}
+
+// ─── Zoom-посилання: єдина точка збереження і розсилки ──────────────────────
+// Calendly створює Zoom асинхронно: у момент бронювання join_url часто ще
+// порожній, тому посилання доводиться дотягувати пізніше (див. cron нижче).
+
+function extractZoomUrl(loc) {
+    if (!loc || typeof loc !== 'object') return null;
+    return loc.join_url
+        || loc.data?.join_url
+        || loc.url
+        || (typeof loc.location === 'string' && loc.location.includes('zoom.us') ? loc.location : null)
+        || null;
+}
+
+async function fetchCalendlyZoom(eventUri) {
+    const pat = process.env.CALENDLY_PAT;
+    if (!pat || !eventUri) return null;
+    try {
+        const resp = await fetch(eventUri, { headers: { 'Authorization': `Bearer ${pat}` } });
+        const data = await resp.json();
+        return extractZoomUrl(data?.resource?.location);
+    } catch (err) {
+        console.error('fetchCalendlyZoom error:', err.message);
+        return null;
+    }
+}
+
+const ZOOM_LEAD_MSG = {
+    uk: (url, time) => `🔗 Посилання на наше демо ${time}:\n${url}\n\nЗбережіть — воно не зміниться. До зустрічі! 👋`,
+    ru: (url, time) => `🔗 Ссылка на наше демо ${time}:\n${url}\n\nСохраните — она не изменится. До встречи! 👋`,
+    en: (url, time) => `🔗 Link to our demo ${time}:\n${url}\n\nSave it — it won't change. See you! 👋`,
+    pl: (url, time) => `🔗 Link do naszego demo ${time}:\n${url}\n\nZachowaj go — nie zmieni się. Do zobaczenia! 👋`,
+    cs: (url, time) => `🔗 Odkaz na naše demo ${time}:\n${url}\n\nUložte si ho — nezmění se. Těšíme se! 👋`,
+};
+
+// Зберегти посилання скрізь: БД → вже заплановані нагадування → Notion,
+// і одразу надіслати його лиду та обом адмінам (рівно один раз на лід).
+async function applyZoomUrl(email, zoomUrl, options = {}) {
+    const { skipNotion = false } = options;
+    if (!email || !zoomUrl) return;
+
+    const upd = await pool.query(
+        `UPDATE landing_waitlist SET zoom_url = $1
+         WHERE id = (SELECT id FROM landing_waitlist WHERE email = $2 ORDER BY created_at DESC LIMIT 1)
+         RETURNING id, telegram_id, lang, center_name, calendly_start_time, zoom_link_sent_at`,
+        [zoomUrl, email]
+    ).catch(err => { console.error('applyZoomUrl db error:', err.message); return { rows: [] }; });
+    if (!upd.rows.length) return;
+    const lead = upd.rows[0];
+    const org = lead.center_name || email;
+    const timeStr = lead.calendly_start_time
+        ? new Date(lead.calendly_start_time).toLocaleString('uk-UA', {
+              timeZone: 'Europe/Kiev', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+        : '';
+
+    // Дописати посилання в усі ще не відправлені нагадування про це демо
+    await pool.query(
+        `UPDATE scheduled_messages SET message = message || $1
+         WHERE sent = FALSE
+           AND message NOT LIKE '%zoom.us%'
+           AND ( (type = 'admin_demo_remind' AND message LIKE $2)
+              OR (type IN ('reminder_h24', 'reminder_h1', 'reminder_m15') AND telegram_id = $3) )`,
+        [`\n\n🔗 Zoom: ${zoomUrl}`, `%${org}%`, lead.telegram_id]
+    ).then(r => console.log(`Zoom: patched ${r.rowCount} pending reminders for ${email}`))
+     .catch(err => console.error('applyZoomUrl patch error:', err.message));
+
+    if (!skipNotion) {
+        updateNotionLeadDemo(email, lead.calendly_start_time || new Date(), zoomUrl)
+            .catch(err => console.error('applyZoomUrl notion error:', err.message));
+    }
+
+    // Розіслати посилання одразу — лиду і обом адмінам, один раз
+    if (lead.zoom_link_sent_at) return;
+    const langKey = (lead.lang || 'uk').toLowerCase().replace('cz', 'cs').replace('ua', 'uk');
+    if (lead.telegram_id) {
+        const build = ZOOM_LEAD_MSG[langKey] || ZOOM_LEAD_MSG.uk;
+        await sendTelegramMessage(lead.telegram_id, build(zoomUrl, timeStr)).catch(() => {});
+    }
+    const adminMsg = `🔗 <b>Zoom для демо</b> — <b>${org}</b> (${email})${timeStr ? `\n🕐 ${timeStr}` : ''}\n${zoomUrl}`;
+    for (const aId of [process.env.TELEGRAM_ADMIN_ID, process.env.TELEGRAM_ADMIN_ALEXANDRA_ID].filter(Boolean)) {
+        sendTelegramMessage(aId, adminMsg).catch(() => {});
+    }
+    await pool.query(`UPDATE landing_waitlist SET zoom_link_sent_at = NOW() WHERE id = $1`, [lead.id])
+        .catch(() => {});
+    console.log(`Zoom link delivered: email=${email} tg=${lead.telegram_id || 'none'}`);
 }
 
 // Обновить канал коммуникации на ТГ когда лид подключил бота
@@ -1663,14 +1752,10 @@ app.post('/api/store-calendly-event', async (req, res) => {
         });
         const apiData = await apiResp.json();
         const startTime = apiData?.resource?.start_time;
-        // Zoom link: перебираємо всі відомі поля Calendly API
-        const loc = apiData?.resource?.location || {};
-        const zoomUrl = loc.join_url
-            || loc.data?.join_url
-            || loc.url
-            || (typeof loc.location === 'string' && loc.location.includes('zoom.us') ? loc.location : null)
-            || null;
-        console.log();
+        // Zoom link: перебираємо всі відомі поля Calendly API.
+        // Часто ще порожній — Calendly пушить зустріч у Zoom асинхронно;
+        // тоді посилання дотягне cron нижче (Zoom backfill).
+        const zoomUrl = extractZoomUrl(apiData?.resource?.location);
 
         if (!startTime) {
             console.warn(`store-calendly-event: no start_time in Calendly response for ${email}`);
@@ -1748,7 +1833,7 @@ app.post('/api/store-calendly-event', async (req, res) => {
                 { text: '\uD83D\uDCC5 \u0425\u043e\u0447\u0443 \u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438', callback_data: 'demo_reschedule' }
             ]] });
             const inserts = [
-                [tgId, remind24,  m.h24,  'reminder',    null],
+                [tgId, remind24,  m.h24,  'reminder_h24', null],
                 [tgId, remind1,   m.h1,   'reminder_h1', demoConfirmMarkup],
                 [tgId, remind15,  m.m15,  'reminder_m15',demoConfirmMarkup],
                 [tgId, afterDemo, m.after,'reminder',    null],
@@ -1764,8 +1849,9 @@ app.post('/api/store-calendly-event', async (req, res) => {
             console.log(`store-calendly-event: reminders scheduled for tg_id=${tgId} demo=${startTime}`);
         }
 
-        // Fire-and-forget: обновить дату демо + Zoom-ссылку в Notion CRM
-        updateNotionLeadDemo(email, startTime, zoomUrl)
+        // Fire-and-forget: обновить дату демо в Notion CRM.
+        // Zoom дописывает applyZoomUrl ниже — чтобы не задваивать callout-блок.
+        updateNotionLeadDemo(email, startTime, null)
             .catch(err => console.error('Notion updateDemo error:', err.message));
 
         // Уведомить Олексія и Олександру о новом демо
@@ -1809,7 +1895,13 @@ app.post('/api/store-calendly-event', async (req, res) => {
             }
         }
 
-        console.log(`Calendly event stored: email=${email} start_time=${startTime} zoom=${zoomUrl || 'none'}`);
+        // Посилання відоме одразу — розіслати і дописати в нагадування.
+        // Якщо ні — його дотягне cron нижче, як тільки Calendly віддасть join_url.
+        if (zoomUrl) {
+            await applyZoomUrl(email, zoomUrl).catch(err => console.error('applyZoomUrl error:', err.message));
+        }
+
+        console.log(`Calendly event stored: email=${email} start_time=${startTime} zoom=${zoomUrl || 'pending'}`);
         res.json({ ok: true, start_time: startTime });
     } catch (err) {
         console.error('store-calendly-event error:', err.message);
@@ -1913,37 +2005,12 @@ app.post('/api/calendly-webhook', async (req, res) => {
 
         // Zoom URL з webhook payload (Calendly вже створив Zoom до цього моменту)
         const wLoc = payload?.scheduled_event?.location || {};
-        const webhookZoom = wLoc.join_url
-            || wLoc.data?.join_url
-            || wLoc.url
-            || (typeof wLoc.location === 'string' && wLoc.location.includes('zoom.us') ? wLoc.location : null)
-            || null;
+        const webhookZoom = extractZoomUrl(wLoc);
         console.log(`Calendly webhook: email=${inviteeEmail} zoom=${webhookZoom || 'none'} loc=${JSON.stringify(wLoc)}`);
 
-        // Зберегти zoom_url в БД (може бути вже збережено з store-calendly-event без zoom)
         if (webhookZoom) {
-            await pool.query(
-                `UPDATE landing_waitlist SET zoom_url = $1
-                 WHERE id = (SELECT id FROM landing_waitlist WHERE email = $2 ORDER BY created_at DESC LIMIT 1)`,
-                [webhookZoom, inviteeEmail]
-            ).catch(() => {});
-
-            // Оновити вже збережені admin_demo_remind повідомлення — дописати zoom якщо його немає
-            const zoomSuffix = `\n🔗 Zoom: ${webhookZoom}`;
-            await pool.query(
-                `UPDATE scheduled_messages
-                 SET message = message || $1
-                 WHERE type = 'admin_demo_remind'
-                   AND sent = FALSE
-                   AND message NOT LIKE $2
-                   AND telegram_id = ANY(ARRAY[$3::bigint, $4::bigint])`,
-                [zoomSuffix, '%zoom.us%', process.env.TELEGRAM_ADMIN_ID, process.env.TELEGRAM_ADMIN_ALEXANDRA_ID]
-            ).then(r => console.log(`Calendly webhook: patched ${r.rowCount} admin reminders with zoom`))
-             .catch(e => console.error('zoom patch error:', e.message));
-
-            // Оновити Notion — дописати блок з посиланням
-            updateNotionLeadDemo(inviteeEmail, startTime, webhookZoom)
-                .catch(() => {});
+            await applyZoomUrl(inviteeEmail, webhookZoom)
+                .catch(e => console.error('webhook applyZoomUrl error:', e.message));
         }
 
         // Знайти лід по email, отримати telegram_id
@@ -3295,6 +3362,31 @@ app.post('/api/trial-event', async (req, res) => {
         console.error(`trial-event error: event=${event_type} email=${email}:`, err.message);
     }
 });
+
+// ─── Cron: дотянуть Zoom-ссылку, если Calendly отдал её не сразу ────────────
+// Calendly пушит встречу в Zoom асинхронно: в момент бронирования join_url
+// часто пустой. Webhook invitee.created за всё время не отработал ни разу,
+// поэтому не полагаемся на него — опрашиваем API сами.
+setInterval(async () => {
+    try {
+        const pending = await pool.query(
+            `SELECT email, calendly_event_uri FROM landing_waitlist
+             WHERE calendly_event_uri IS NOT NULL
+               AND zoom_url IS NULL
+               AND calendly_start_time > NOW() - INTERVAL '1 hour'
+             ORDER BY calendly_start_time ASC LIMIT 20`
+        );
+        for (const row of pending.rows) {
+            const zoomUrl = await fetchCalendlyZoom(row.calendly_event_uri);
+            if (zoomUrl) {
+                console.log(`Zoom backfill: ${row.email} → ${zoomUrl}`);
+                await applyZoomUrl(row.email, zoomUrl);
+            }
+        }
+    } catch (err) {
+        console.error('Zoom backfill error:', err.message);
+    }
+}, 120_000); // каждые 2 минуты
 
 // ─── Cron: отправить запланированные TG-напоминания ─────────────────────────
 setInterval(async () => {
