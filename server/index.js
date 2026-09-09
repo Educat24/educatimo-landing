@@ -61,7 +61,11 @@ const pool = new Pool({
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: '100kb' }));
+// rawBody нужен для проверки подписи Calendly — HMAC считается от исходных байт
+app.use(bodyParser.json({
+    limit: '100kb',
+    verify: (req, _res, buf) => { req.rawBody = buf; }
+}));
 app.use(bodyParser.urlencoded({ extended: true, limit: '100kb', parameterLimit: 100 }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -2131,12 +2135,83 @@ app.post('/api/telegram-auth', async (req, res) => {
     res.json({ ok: true });
 });
 
+// Подпись Calendly: заголовок вида "t=<unix>,v1=<hex>", HMAC-SHA256 от "<t>.<rawBody>".
+// Без CALENDLY_WEBHOOK_SIGNING_KEY проверка пропускается — иначе уже настроенный
+// вебхук замолчал бы при выкатке этой версии.
+function verifyCalendlySignature(req) {
+    const key = process.env.CALENDLY_WEBHOOK_SIGNING_KEY;
+    if (!key) return { ok: true, skipped: true };
+    const header = req.get('Calendly-Webhook-Signature') || '';
+    const parts = Object.fromEntries(
+        header.split(',').map(p => p.split('=')).filter(p => p.length === 2).map(([k, v]) => [k.trim(), v.trim()])
+    );
+    if (!parts.t || !parts.v1 || !req.rawBody) return { ok: false, reason: 'malformed header' };
+    // Отбить повтор старого запроса: подпись живёт 5 минут
+    if (Math.abs(Date.now() / 1000 - Number(parts.t)) > 300) return { ok: false, reason: 'stale timestamp' };
+    const expected = crypto.createHmac('sha256', key)
+        .update(parts.t + '.' + req.rawBody.toString('utf8')).digest('hex');
+    const a = Buffer.from(expected, 'utf8');
+    const b = Buffer.from(parts.v1, 'utf8');
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return { ok: false, reason: 'signature mismatch' };
+    return { ok: true };
+}
+
+// Погасить все ещё не отправленные напоминания об отменённом демо
+async function cancelDemoReminders(telegramId, orgName) {
+    if (telegramId) {
+        await pool.query(
+            `UPDATE scheduled_messages SET sent = TRUE
+             WHERE telegram_id = $1 AND sent = FALSE
+               AND type IN ('reminder_h24', 'reminder_h1', 'reminder_m15', 'reminder')`,
+            [telegramId]
+        ).catch(err => console.error('cancelDemoReminders lead error:', err.message));
+    }
+    if (orgName) {
+        await pool.query(
+            `UPDATE scheduled_messages SET sent = TRUE
+             WHERE type = 'admin_demo_remind' AND sent = FALSE AND message LIKE $1`,
+            [`%${orgName}%`]
+        ).catch(err => console.error('cancelDemoReminders admin error:', err.message));
+    }
+}
+
 // --- Calendly Webhook: планировать TG-напоминания о демо ---
 // Настроить в Calendly: Settings → Integrations → Webhooks → POST /api/calendly-webhook
 app.post('/api/calendly-webhook', async (req, res) => {
     try {
+        const sig = verifyCalendlySignature(req);
+        if (!sig.ok) {
+            console.warn(`Calendly webhook: отклонён — ${sig.reason}`);
+            return res.status(401).json({ error: 'invalid signature' });
+        }
+
         const event = req.body?.event;
         const payload = req.body?.payload;
+
+        // Отмена или перенос: гасим напоминания, чистим дату демо, зовём админов
+        if (event === 'invitee.canceled' && payload) {
+            const canceledEmail = payload?.email;
+            if (!canceledEmail) return res.json({ ok: true });
+            const row = await pool.query(
+                `UPDATE landing_waitlist
+                 SET calendly_start_time = NULL, zoom_url = NULL, zoom_link_sent_at = NULL
+                 WHERE id = (SELECT id FROM landing_waitlist WHERE email = $1 ORDER BY created_at DESC LIMIT 1)
+                 RETURNING telegram_id, center_name`,
+                [canceledEmail]
+            ).catch(err => { console.error('invitee.canceled db error:', err.message); return { rows: [] }; });
+            const lead = row.rows[0] || {};
+            await cancelDemoReminders(lead.telegram_id, lead.center_name);
+            updateNotionLeadReschedule(canceledEmail).catch(() => {});
+            const reason = payload?.cancellation?.reason || payload?.cancellation?.canceled_by || '';
+            const adminMsg = `📅 <b>Демо скасовано</b>\n\n🏢 <b>${lead.center_name || canceledEmail}</b>\n📧 ${canceledEmail}` +
+                `${reason ? `\n💬 ${escapeTelegramHtml(String(reason))}` : ''}\n\n→ Нагадування знято, етап у Notion — «Перенос ДЕМО»`;
+            for (const aId of [process.env.TELEGRAM_ADMIN_ID, process.env.TELEGRAM_ADMIN_ALEXANDRA_ID].filter(Boolean)) {
+                sendTelegramMessage(aId, adminMsg).catch(() => {});
+            }
+            console.log(`Calendly webhook: invitee.canceled email=${canceledEmail}`);
+            return res.json({ ok: true });
+        }
+
         if (event !== 'invitee.created' || !payload) return res.json({ ok: true });
 
         const inviteeEmail = payload?.email;
