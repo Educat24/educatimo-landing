@@ -2175,6 +2175,36 @@ async function cancelDemoReminders(telegramId, orgName) {
     }
 }
 
+// Демо отменено: снять напоминания, очистить дату и ссылку, поправить Notion,
+// позвать админов. Вызывается и вебхуком, и опросом Calendly API (см. cron ниже) —
+// повторно не сработает, потому что после первого раза calendly_start_time = NULL.
+async function handleDemoCanceled(email, reason = '', source = 'api') {
+    if (!email) return false;
+    const row = await pool.query(
+        `UPDATE landing_waitlist
+         SET calendly_start_time = NULL, zoom_url = NULL, zoom_link_sent_at = NULL
+         WHERE id = (SELECT id FROM landing_waitlist
+                     WHERE email = $1 AND calendly_start_time IS NOT NULL
+                     ORDER BY created_at DESC LIMIT 1)
+         RETURNING telegram_id, center_name`,
+        [email]
+    ).catch(err => { console.error('handleDemoCanceled db error:', err.message); return { rows: [] }; });
+    if (!row.rows.length) return false;
+
+    const lead = row.rows[0];
+    await cancelDemoReminders(lead.telegram_id, lead.center_name);
+    updateNotionLeadReschedule(email).catch(() => {});
+
+    const adminMsg = `📅 <b>Демо скасовано</b>\n\n🏢 <b>${escapeTelegramHtml(lead.center_name || email)}</b>\n📧 ${email}` +
+        `${reason ? `\n💬 ${escapeTelegramHtml(String(reason))}` : ''}` +
+        `\n\n→ Нагадування знято, етап у Notion — «Перенос ДЕМО»`;
+    for (const aId of [process.env.TELEGRAM_ADMIN_ID, process.env.TELEGRAM_ADMIN_ALEXANDRA_ID].filter(Boolean)) {
+        sendTelegramMessage(aId, adminMsg).catch(() => {});
+    }
+    console.log(`Demo canceled (${source}): email=${email}`);
+    return true;
+}
+
 // --- Calendly Webhook: планировать TG-напоминания о демо ---
 // Настроить в Calendly: Settings → Integrations → Webhooks → POST /api/calendly-webhook
 app.post('/api/calendly-webhook', async (req, res) => {
@@ -2192,23 +2222,8 @@ app.post('/api/calendly-webhook', async (req, res) => {
         if (event === 'invitee.canceled' && payload) {
             const canceledEmail = payload?.email;
             if (!canceledEmail) return res.json({ ok: true });
-            const row = await pool.query(
-                `UPDATE landing_waitlist
-                 SET calendly_start_time = NULL, zoom_url = NULL, zoom_link_sent_at = NULL
-                 WHERE id = (SELECT id FROM landing_waitlist WHERE email = $1 ORDER BY created_at DESC LIMIT 1)
-                 RETURNING telegram_id, center_name`,
-                [canceledEmail]
-            ).catch(err => { console.error('invitee.canceled db error:', err.message); return { rows: [] }; });
-            const lead = row.rows[0] || {};
-            await cancelDemoReminders(lead.telegram_id, lead.center_name);
-            updateNotionLeadReschedule(canceledEmail).catch(() => {});
             const reason = payload?.cancellation?.reason || payload?.cancellation?.canceled_by || '';
-            const adminMsg = `📅 <b>Демо скасовано</b>\n\n🏢 <b>${lead.center_name || canceledEmail}</b>\n📧 ${canceledEmail}` +
-                `${reason ? `\n💬 ${escapeTelegramHtml(String(reason))}` : ''}\n\n→ Нагадування знято, етап у Notion — «Перенос ДЕМО»`;
-            for (const aId of [process.env.TELEGRAM_ADMIN_ID, process.env.TELEGRAM_ADMIN_ALEXANDRA_ID].filter(Boolean)) {
-                sendTelegramMessage(aId, adminMsg).catch(() => {});
-            }
-            console.log(`Calendly webhook: invitee.canceled email=${canceledEmail}`);
+            await handleDemoCanceled(canceledEmail, reason, 'webhook');
             return res.json({ ok: true });
         }
 
@@ -3730,6 +3745,34 @@ setInterval(async () => {
         console.error('Zoom backfill error:', err.message);
     }
 }, 120_000); // каждые 2 минуты
+
+// ─── Cron: поймать отменённые демо без вебхука ──────────────────────────────
+// Вебхуки Calendly доступны не на всех тарифах, а /scheduled_events читается
+// обычным токеном — статус active/canceled виден и так.
+setInterval(async () => {
+    const pat = process.env.CALENDLY_PAT;
+    if (!pat) return;
+    try {
+        const upcoming = await pool.query(
+            `SELECT email, calendly_event_uri FROM landing_waitlist
+             WHERE calendly_event_uri IS NOT NULL
+               AND calendly_start_time IS NOT NULL
+               AND calendly_start_time > NOW()
+             ORDER BY calendly_start_time ASC LIMIT 30`
+        );
+        for (const row of upcoming.rows) {
+            const resp = await fetch(row.calendly_event_uri, { headers: { Authorization: `Bearer ${pat}` } })
+                .then(r => r.json())
+                .catch(err => { console.error('cancel-check fetch error:', err.message); return null; });
+            const ev = resp && resp.resource;
+            if (!ev || ev.status !== 'canceled') continue;
+            const c = ev.cancellation || {};
+            await handleDemoCanceled(row.email, c.reason || c.canceled_by || '', 'cron');
+        }
+    } catch (err) {
+        console.error('Cancel-check error:', err.message);
+    }
+}, 300_000); // каждые 5 минут
 
 // ─── Cron: отправить запланированные TG-напоминания ─────────────────────────
 if (process.env.BACKGROUND_JOBS_ENABLED !== 'false') setInterval(async () => {
