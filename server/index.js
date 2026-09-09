@@ -1826,9 +1826,9 @@ app.post('/api/send-lead-email', async (req, res) => {
         // Обновить флаг в БД (best-effort)
         await pool.query(
             `UPDATE landing_waitlist SET calendly_booked = $1
-             WHERE email = $2 AND calendly_booked IS NULL
-             ORDER BY created_at DESC
-             LIMIT 1`,
+             WHERE id = (SELECT id FROM landing_waitlist
+                         WHERE email = $2 AND calendly_booked IS NULL
+                         ORDER BY created_at DESC LIMIT 1)`,
             [isBooked, email]
         ).catch(err => console.error('calendly_booked update error:', err.message));
 
