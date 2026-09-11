@@ -1971,7 +1971,7 @@ app.post('/api/store-calendly-event', async (req, res) => {
                 { text: '\uD83D\uDCC5 \u0425\u043e\u0447\u0443 \u043f\u0435\u0440\u0435\u043d\u0435\u0441\u0442\u0438', callback_data: 'demo_reschedule' }
             ]] });
             const inserts = [
-                [tgId, remind24,  m.h24 + leadZoomLine, 'reminder_h24', null],
+                [tgId, remind24,  m.h24 + leadZoomLine, 'reminder_h24', demoConfirmMarkup],
                 [tgId, remind1,   m.h1 + leadZoomLine,  'reminder_h1',  demoConfirmMarkup],
                 [tgId, remind15,  m.m15 + leadZoomLine, 'reminder_m15', demoConfirmMarkup],
                 [tgId, afterDemo, m.after,'reminder',    null],
@@ -3040,8 +3040,8 @@ ${demoAlreadyHeld ? `## ПОТОЧНА МЕТА: старт 7-денного т�
             ]] });
             if (remind24 > new Date()) {
                 await pool.query(
-                    `INSERT INTO scheduled_messages (telegram_id, send_at, message, type) VALUES ($1, $2, $3, 'reminder_h24')`,
-                    [tgId, remind24.toISOString(), rm.h24 + leadZoomLine]
+                    `INSERT INTO scheduled_messages (telegram_id, send_at, message, type, reply_markup) VALUES ($1, $2, $3, 'reminder_h24', $4)`,
+                    [tgId, remind24.toISOString(), rm.h24 + leadZoomLine, demoConfirmMarkupWh]
                 );
             }
             if (remind1 > new Date()) {
