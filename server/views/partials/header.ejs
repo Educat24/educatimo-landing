@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html
-    lang="<%= typeof lang !== 'undefined' ? lang : (typeof language !== 'undefined' && language === 'ua' ? 'uk' : (typeof language !== 'undefined' && language === 'cz' ? 'cs' : 'ru')) %>">
+    lang="<%= typeof lang !== 'undefined' ? lang : (typeof language !== 'undefined' && language === 'ua' ? 'uk' : (typeof language !== 'undefined' ? (language === 'cz' ? 'cs' : language) : 'ru')) %>">
 
 <head>
     <script>
@@ -39,7 +39,7 @@
                 content="<%= typeof imageUrl !== 'undefined' ? imageUrl : '/img/hero-background.jpeg' %>">
             <meta property="og:type" content="<%= typeof ogType !== 'undefined' ? ogType : 'website' %>">
             <meta property="og:url"
-                content="<%= typeof currentUrl !== 'undefined' ? currentUrl : 'https://neuro.educatimo.com' %>">
+                content="<%= typeof currentUrl !== 'undefined' ? currentUrl : 'https://www.neuro.educatimo.com' %>">
             <meta property="og:locale" content="<%= typeof ogLocale !== 'undefined' ? ogLocale : 'ru_RU' %>">
 
             <% if (typeof canonicalUrl !== 'undefined' && canonicalUrl) { %>
@@ -135,23 +135,24 @@
         <div class="container">
             <a href="/" class="navbar-brand">Neuro Educatimo</a>
             <div class="nav-links" style="display: flex; gap: 20px; align-items: center;">
-                <a href="/blog" style="text-decoration: none; color: inherit; font-weight: 500;">Блог</a>
+                <a href="/blog?language=<%= typeof lang !== 'undefined' ? lang : 'ru' %>" style="text-decoration: none; color: inherit; font-weight: 500;"><%= typeof terms !== 'undefined' ? terms.menuBlog : 'Блог' %></a>
                 <div class="lang-switcher">
                     <% const getLangLink=(lang)=> {
                         if (typeof currentPath !== 'undefined') {
-                        if (currentPath.startsWith('/admin')) return `/admin?language=${lang}`;
+                        if (currentPath.startsWith('/admin')) return `/admin?language=${lang === 'cs' ? 'cz' : lang === 'uk' ? 'ua' : lang}`;
                         if (currentPath.startsWith('/blog')) return `/blog?language=${lang}`;
                         }
                         // Default to landing pages
-                        return lang === 'ru' ? '/' : `/${lang}`;
+                        return `/${lang}/`;
                         }
-                        const curLang = typeof language !== 'undefined' ? language : (typeof currentLanguage !==
+                        const rawLang = typeof language !== 'undefined' ? language : (typeof currentLanguage !==
                         'undefined' ? currentLanguage : 'ru');
+                        const curLang = rawLang === 'cz' ? 'cs' : rawLang === 'ua' ? 'uk' : rawLang;
                         %>
-                        <a href="<%= getLangLink('ua') %>" class="<%= curLang === 'ua' ? 'active' : '' %>">UA</a>
+                        <a href="<%= getLangLink('uk') %>" class="<%= curLang === 'uk' ? 'active' : '' %>">UA</a>
                         <a href="<%= getLangLink('en') %>" class="<%= curLang === 'en' ? 'active' : '' %>">EN</a>
                         <a href="<%= getLangLink('pl') %>" class="<%= curLang === 'pl' ? 'active' : '' %>">PL</a>
-                        <a href="<%= getLangLink('cz') %>" class="<%= curLang === 'cz' ? 'active' : '' %>">CZ</a>
+                        <a href="<%= getLangLink('cs') %>" class="<%= curLang === 'cs' ? 'active' : '' %>">CZ</a>
                         <a href="<%= getLangLink('ru') %>" class="<%= curLang === 'ru' ? 'active' : '' %>">RU</a>
                 </div>
             </div>

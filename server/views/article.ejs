@@ -7,7 +7,7 @@
                     <%= article.title %>
                 </h1>
                 <p class="article-meta" style="color: #777; margin-bottom: 30px;">
-                    <%= new Date(article.created_at).toLocaleDateString('ru-RU') %>
+                    <%= new Date(article.created_at).toLocaleDateString(lang) %>
                 </p>
 
                 <% if (article.image_url) { %>

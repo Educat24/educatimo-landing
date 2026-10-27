@@ -32,6 +32,7 @@ const pgSession = require('connect-pg-simple')(session);
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { KEYWORD_MAPS, TERMS } = require('./seo_config');
+const BLOG_LOCALES = { ru: 'ru_RU', uk: 'uk_UA', en: 'en_US', pl: 'pl_PL', cs: 'cs_CZ' };
 const {
     buildLeadRebookMessage,
     deriveTelegramWebhookSecret,
@@ -3142,6 +3143,22 @@ const linkify = (text, language) => {
     return linkedText;
 };
 
+// Public URLs use ISO codes; keep legacy database codes at the query boundary.
+// Preserve all query parameters (including repeated values) on legacy redirects.
+app.use('/blog', (req, res, next) => {
+    const url = new URL(req.originalUrl, 'https://www.neuro.educatimo.com');
+    const languages = url.searchParams.getAll('language');
+    if (languages.length > 1 || (languages.length === 1 &&
+        !Object.hasOwn(BLOG_LOCALES, toIsoLang(languages[0])))) {
+        return res.status(400).send('Unsupported language');
+    }
+    if (languages.length === 1 && ['cz', 'ua'].includes(languages[0])) {
+        url.searchParams.set('language', toIsoLang(languages[0]));
+        return res.redirect(301, url.pathname + url.search);
+    }
+    next();
+});
+
 app.get('/blog', async (req, res) => {
     try {
         const urlLang = req.query.language || 'ru';
@@ -3165,6 +3182,10 @@ app.get('/blog', async (req, res) => {
             articles: result.rows,
             pageTitle: terms.blogTitle,
             language: urlLang,
+            lang: urlLang,
+            metaDescription: terms.blogSubtitle,
+            ogLocale: BLOG_LOCALES[urlLang],
+            currentUrl: `https://www.neuro.educatimo.com/blog?language=${urlLang}`,
             terms: terms,
             canonicalUrl: `https://www.neuro.educatimo.com/blog?language=${urlLang}`,
             alternateUrls: {
@@ -3246,16 +3267,12 @@ app.get('/blog/:slug', async (req, res) => {
             }]
         };
 
-        const localeMap = {
-            'ru': 'ru_RU', 'ua': 'uk_UA', 'en': 'en_US', 'pl': 'pl_PL', 'cz': 'cs_CZ'
-        };
-
         res.render('article', {
             article: article,
-            language: language,
+            language: isoLang,
             lang: isoLang,
             terms: terms,
-            currentPath: `/blog/${slug}?language=${language}`,
+            currentPath: `/blog/${slug}`,
             currentUrl: `https://www.neuro.educatimo.com/blog/${slug}`,
             canonicalUrl: `https://www.neuro.educatimo.com/blog/${slug}`,
             alternateUrls,
@@ -3265,7 +3282,7 @@ app.get('/blog/:slug', async (req, res) => {
             imageUrl: article.image_url,
 
             ogType: 'article',
-            ogLocale: localeMap[language] || 'en_US',
+            ogLocale: BLOG_LOCALES[isoLang] || 'ru_RU',
 
 
             baseUrl: 'https://www.neuro.educatimo.com',
