@@ -55,16 +55,60 @@
         input.value = lang;
     }
 
+    // Country-neutral syntax check only; does not establish ownership/reachability.
+    function normalizePhone(value) {
+        var raw = String(value || '').trim();
+        if (!/^\+[0-9\s()\-]+$/.test(raw)) return null;
+        var normalized = raw.replace(/[\s()\-]/g, '');
+        return /^\+[1-9][0-9]{6,14}$/.test(normalized) ? normalized : null;
+    }
+
+    var phoneErrors = {
+        uk: 'Введіть +, код країни та номер (7–15 цифр). Можна використовувати пробіли й дефіси.',
+        ru: 'Введите +, код страны и номер (7–15 цифр). Пробелы и дефисы допустимы.',
+        en: 'Enter +, country code and number (7–15 digits). Spaces and hyphens are accepted.',
+        cs: 'Zadejte +, předvolbu země a číslo (7–15 číslic). Mezery a pomlčky jsou povoleny.',
+        pl: 'Wpisz +, kod kraju i numer (7–15 cyfr). Spacje i myślniki są dozwolone.'
+    };
+
+    function validatePhone(form) {
+        var input = form.querySelector('input[name="phone"]');
+        if (!input) return true;
+        var normalized = normalizePhone(input.value);
+        var optionalEmpty = !input.required && !input.value.trim();
+        input.setCustomValidity(normalized || optionalEmpty ? '' : phoneErrors[getFormLang(form)]);
+        if (normalized) input.value = normalized;
+        return !!normalized || optionalEmpty;
+    }
+
+    function preparePhone(form) {
+        var input = form.querySelector('input[name="phone"]');
+        if (!input || input.dataset.phonePrepared) return;
+        input.dataset.phonePrepared = 'true';
+        input.placeholder = getFormLang(form) === 'uk' ? '+380 XX XXX XX XX' : '+XXXXXXXXXXX';
+        input.inputMode = 'tel';
+        input.autocomplete = 'tel';
+        input.addEventListener('input', function () { input.setCustomValidity(''); });
+        input.addEventListener('blur', function () { if (input.value.trim()) validatePhone(form); });
+    }
+
     function injectLangInputs() {
         var forms = document.querySelectorAll('form[action*="/api/register"]');
         for (var i = 0; i < forms.length; i++) {
             ensureFormLang(forms[i]);
+            preparePhone(forms[i]);
         }
     }
 
     document.addEventListener('submit', function (e) {
         if (e.target && e.target.action && e.target.action.indexOf('/api/register') !== -1) {
             ensureFormLang(e.target);
+            preparePhone(e.target);
+            if (!validatePhone(e.target)) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                e.target.querySelector('input[name="phone"]').reportValidity();
+            }
         }
     }, true);
 
