@@ -26,7 +26,7 @@ function render(){
  document.querySelector('#language').value=lang;document.querySelector('#region').value=region;
  document.querySelectorAll('[data-home]').forEach(a=>a.href='/'+lang+'/');
  document.querySelectorAll('[data-demo]').forEach(a=>a.href='/'+lang+'/#registration');
- document.querySelectorAll('[data-legal]').forEach(a=>a.href='/'+lang+'/'+a.dataset.legal);
+ document.querySelectorAll('[data-legal]').forEach(a=>a.href='https://www.neuro.educatimo.com/'+lang+'/'+a.dataset.legal);
  const grid=document.querySelector('#packages');grid.replaceChildren();
  for(let i=0;i<6;i++){
   const article=document.createElement('article');article.className='card';
