@@ -1,315 +1,45 @@
-/* Commercial prices match billing/admin screenshots dated 2026-10-22.
- * EUR: ECB 2026-10-21, 1 EUR = 1.1234 USD; ceil once on the term total.
- * No live FX service or changes to account billing/payment currencies. */
+/* Public demo-led offers only. Never reads organization, geolocation or billing data.
+ * Language sets the default display region; manual region changes do not change language.
+ * This page never creates orders and does not promise settlement in EUR. */
 (() => {
-  'use strict';
-  const totalsUAH = {1: [2500,3750,6000],3: [6750,10000,16250],6: [12750,19000,30500],12: [25000,37500,60000]};
-  const usdPerEuro = 1.1234;
-  const copy = {
-  "uk": {
-    "title": "Тарифи",
-    "intro": "Індивідуальне тестування, когнітивні тренування та робота з групами — оберіть можливості для вашої практики.",
-    "language": "Мова",
-    "currency": "Валюта",
-    "term": "Термін підписки",
-    "terms": [
-      "1 місяць",
-      "3 місяці",
-      "6 місяців",
-      "12 місяців"
-    ],
-    "choose": "Оберіть свій план",
-    "taglines": [
-      "Індивідуальне тестування",
-      "Тестування та індивідуальний розвиток",
-      "Для центрів, шкіл і груп"
-    ],
-    "features": [
-      "Індивідуальне тестування онлайн та офлайн",
-      "До 20 індивідуальних тестувань на місяць",
-      "Безлімітне індивідуальне тестування",
-      "Когнітивний паспорт",
-      "Звіти та інтерпретація результатів",
-      "Індивідуальні когнітивні тренування",
-      "Групове тестування",
-      "Групові когнітивні тренування"
-    ],
-    "includes": "Усе з Plus, а також:",
-    "start": "Спробувати безкоштовно",
-    "popular": "Для регулярної практики",
-    "compare": "Порівняйте можливості",
-    "assessmentLimit": "Індивідуальних тестувань на місяць",
-    "cap": "Ліміт тестувань у Basic діє щомісяця за будь-якого терміну підписки.",
-    "unlimited": "Безліміт",
-    "limit": "20 / міс.",
-    "available": "Включено",
-    "unavailable": "Не включено",
-    "total": "за весь термін",
-    "month": "за місяць",
-    "annual": "12 місяців за ціною 10",
-    "reference": "Ціни в EUR — довідковий еквівалент доларових цін, округлений вгору до цілого євро.",
-    "rate": "Курс ЄЦБ від 21.10.2026: 1 EUR = 1,1234 USD.",
-    "payment": "Оплата підписки в особистому кабінеті — у гривнях. Умови оплати з інших країн уточнюйте під час демо.",
-    "help": "Потрібна допомога з вибором?",
-    "helpText": "Покажемо платформу та допоможемо обрати план для вашого формату роботи.",
-    "demo": "Записатися на демо",
-    "home": "Головна",
-    "back": "На головну",
-    "nojs": "Для вибору валюти й терміну підписки увімкніть JavaScript. Нижче вказані ціни за один місяць у доларах."
-  },
-  "en": {
-    "title": "Pricing",
-    "intro": "Individual assessments, cognitive training and group sessions — choose the tools for your practice.",
-    "language": "Language",
-    "currency": "Currency",
-    "term": "Subscription term",
-    "terms": [
-      "1 month",
-      "3 months",
-      "6 months",
-      "12 months"
-    ],
-    "choose": "Choose your plan",
-    "taglines": [
-      "Individual assessments",
-      "Assessment and individual development",
-      "For centres, schools and groups"
-    ],
-    "features": [
-      "Individual assessments online and in person",
-      "Up to 20 individual assessments per month",
-      "Unlimited individual assessments",
-      "Cognitive passport",
-      "Reports and interpretation of results",
-      "Individual cognitive training",
-      "Group assessments",
-      "Group cognitive training"
-    ],
-    "includes": "Everything in Plus, plus:",
-    "start": "Start a free trial",
-    "popular": "For regular practice",
-    "compare": "Compare features",
-    "assessmentLimit": "Individual assessments per month",
-    "cap": "The Basic assessment limit applies each month, regardless of subscription term.",
-    "unlimited": "Unlimited",
-    "limit": "20 / month",
-    "available": "Included",
-    "unavailable": "Not included",
-    "total": "for the full term",
-    "month": "per month",
-    "annual": "12 months for the price of 10",
-    "reference": "EUR prices are indicative USD equivalents, rounded up to the next whole euro.",
-    "rate": "ECB rate on 21 Oct 2026: EUR 1 = USD 1.1234.",
-    "payment": "Subscriptions in your account are paid in Ukrainian hryvnias. For payment from other countries, please ask during your demo.",
-    "help": "Need help choosing?",
-    "helpText": "We will show you the platform and help you choose a plan for your practice.",
-    "demo": "Book a demo",
-    "home": "Home",
-    "back": "Back to home",
-    "nojs": "Enable JavaScript to choose currency and term. Prices below are for one month in USD."
-  },
-  "ru": {
-    "title": "Тарифы",
-    "intro": "Индивидуальное тестирование, когнитивные тренировки и работа с группами — выберите возможности для вашей практики.",
-    "language": "Язык",
-    "currency": "Валюта",
-    "term": "Срок подписки",
-    "terms": [
-      "1 месяц",
-      "3 месяца",
-      "6 месяцев",
-      "12 месяцев"
-    ],
-    "choose": "Выберите свой план",
-    "taglines": [
-      "Индивидуальное тестирование",
-      "Тестирование и индивидуальное развитие",
-      "Для центров, школ и групп"
-    ],
-    "features": [
-      "Индивидуальное тестирование онлайн и офлайн",
-      "До 20 индивидуальных тестирований в месяц",
-      "Безлимитное индивидуальное тестирование",
-      "Когнитивный паспорт",
-      "Отчёты и интерпретация результатов",
-      "Индивидуальные когнитивные тренировки",
-      "Групповое тестирование",
-      "Групповые когнитивные тренировки"
-    ],
-    "includes": "Всё из Plus, а также:",
-    "start": "Попробовать бесплатно",
-    "popular": "Для регулярной практики",
-    "compare": "Сравните возможности",
-    "assessmentLimit": "Индивидуальных тестирований в месяц",
-    "cap": "Лимит тестирований Basic действует каждый месяц при любом сроке подписки.",
-    "unlimited": "Безлимит",
-    "limit": "20 / мес.",
-    "available": "Включено",
-    "unavailable": "Не включено",
-    "total": "за весь срок",
-    "month": "за месяц",
-    "annual": "12 месяцев по цене 10",
-    "reference": "Цены в EUR — справочный эквивалент долларовых цен, округлённый вверх до целого евро.",
-    "rate": "Курс ЕЦБ на 21.10.2026: 1 EUR = 1,1234 USD.",
-    "payment": "Оплата подписки в личном кабинете — в гривнах. Условия оплаты из других стран уточняйте во время демо.",
-    "help": "Нужна помощь с выбором?",
-    "helpText": "Покажем платформу и поможем выбрать план под ваш формат работы.",
-    "demo": "Записаться на демо",
-    "home": "Главная",
-    "back": "На главную",
-    "nojs": "Для выбора валюты и срока включите JavaScript. Ниже цены за месяц в долларах."
-  },
-  "pl": {
-    "title": "Cennik",
-    "intro": "Badania indywidualne, trening poznawczy i praca z grupami — wybierz narzędzia dla swojej praktyki.",
-    "language": "Język",
-    "currency": "Waluta",
-    "term": "Okres subskrypcji",
-    "terms": [
-      "1 miesiąc",
-      "3 miesiące",
-      "6 miesięcy",
-      "12 miesięcy"
-    ],
-    "choose": "Wybierz swój plan",
-    "taglines": [
-      "Badania indywidualne",
-      "Badania i rozwój indywidualny",
-      "Dla centrów, szkół i grup"
-    ],
-    "features": [
-      "Badania indywidualne online i stacjonarnie",
-      "Do 20 badań indywidualnych miesięcznie",
-      "Badania indywidualne bez limitu",
-      "Paszport poznawczy",
-      "Raporty i interpretacja wyników",
-      "Indywidualny trening poznawczy",
-      "Badania grupowe",
-      "Grupowy trening poznawczy"
-    ],
-    "includes": "Wszystko z Plus oraz:",
-    "start": "Wypróbuj bezpłatnie",
-    "popular": "Do regularnej pracy",
-    "compare": "Porównaj możliwości",
-    "assessmentLimit": "Badania indywidualne miesięcznie",
-    "cap": "Limit badań w Basic obowiązuje co miesiąc, niezależnie od okresu subskrypcji.",
-    "unlimited": "Bez limitu",
-    "limit": "20 / mies.",
-    "available": "W pakiecie",
-    "unavailable": "Poza pakietem",
-    "total": "za cały okres",
-    "month": "za miesiąc",
-    "annual": "12 miesięcy w cenie 10",
-    "reference": "Ceny w EUR to orientacyjny odpowiednik cen w USD, zaokrąglony w górę do pełnego euro.",
-    "rate": "Kurs EBC z 21.10.2026: 1 EUR = 1,1234 USD.",
-    "payment": "Subskrypcję w panelu opłaca się w hrywnach ukraińskich. O płatności z innych krajów zapytaj podczas prezentacji.",
-    "help": "Potrzebujesz pomocy w wyborze?",
-    "helpText": "Pokażemy platformę i pomożemy wybrać plan odpowiedni do Twojej pracy.",
-    "demo": "Umów prezentację",
-    "home": "Strona główna",
-    "back": "Na stronę główną",
-    "nojs": "Włącz JavaScript, aby wybrać walutę i okres. Poniżej ceny za miesiąc w USD."
-  },
-  "cs": {
-    "title": "Ceník",
-    "intro": "Individuální vyšetření, kognitivní trénink a práce se skupinami — vyberte si nástroje pro svou praxi.",
-    "language": "Jazyk",
-    "currency": "Měna",
-    "term": "Délka předplatného",
-    "terms": [
-      "1 měsíc",
-      "3 měsíce",
-      "6 měsíců",
-      "12 měsíců"
-    ],
-    "choose": "Vyberte si plán",
-    "taglines": [
-      "Individuální vyšetření",
-      "Vyšetření a individuální rozvoj",
-      "Pro centra, školy a skupiny"
-    ],
-    "features": [
-      "Individuální vyšetření online i prezenčně",
-      "Až 20 individuálních vyšetření měsíčně",
-      "Neomezené individuální vyšetření",
-      "Kognitivní pas",
-      "Zprávy a interpretace výsledků",
-      "Individuální kognitivní trénink",
-      "Skupinové vyšetření",
-      "Skupinový kognitivní trénink"
-    ],
-    "includes": "Vše z Plus a navíc:",
-    "start": "Vyzkoušet zdarma",
-    "popular": "Pro pravidelnou praxi",
-    "compare": "Porovnejte možnosti",
-    "assessmentLimit": "Individuální vyšetření měsíčně",
-    "cap": "Limit vyšetření v Basic platí každý měsíc bez ohledu na délku předplatného.",
-    "unlimited": "Neomezeně",
-    "limit": "20 / měs.",
-    "available": "Zahrnuto",
-    "unavailable": "Nezahrnuto",
-    "total": "za celé období",
-    "month": "za měsíc",
-    "annual": "12 měsíců za cenu 10",
-    "reference": "Ceny v EUR jsou orientačním přepočtem cen v USD, zaokrouhleným nahoru na celé euro.",
-    "rate": "Kurz ECB k 21. 10. 2026: 1 EUR = 1,1234 USD.",
-    "payment": "Předplatné v účtu se platí v ukrajinských hřivnách. Na platby z jiných zemí se zeptejte při ukázce.",
-    "help": "Potřebujete poradit s výběrem?",
-    "helpText": "Ukážeme vám platformu a pomůžeme vybrat plán pro vaši praxi.",
-    "demo": "Domluvit ukázku",
-    "home": "Úvod",
-    "back": "Zpět na úvod",
-    "nojs": "Pro výběr měny a období zapněte JavaScript. Níže jsou měsíční ceny v USD."
-  }
+'use strict';
+const copy = {
+uk: {
+language:'Мова',title:'Треки розвитку для вашого закладу',intro:'Разові пакети для скринінгу та розвитку дітей. Оберіть обсяг і обговоріть умови на демо.',region:'Регіон пропозиції',ukraine:'Україна — UAH',international:'Міжнародна пропозиція — EUR',regionNote:'Початковий регіон обрано за мовою сторінки. Його можна змінити незалежно від мови.',choose:'Оберіть пакет треків',what:'Що таке трек?',tracks:'треків',once:'разова вартість пакета',saving:'Економія за трек проти стартового пакета',start:'Стартовий пакет',custom:'Від 500 треків',request:'За запитом',cta:'Запитати демо та умови',payment:'Це пропозиція для нових B2B-покупок. Демо не створює платіжного замовлення. Валюту та спосіб оплати узгоджуємо окремо; ціна в EUR не є обіцянкою списання з картки в євро. Чинні підписки та раніше оформлені замовлення не змінюються.',track:'Трек включає скринінг когнітивних здібностей дитини батареєю тестів, звіт для спеціаліста, рекомендації з розвитку, зрозумілий когнітивний паспорт для батьків і три календарні місяці доступу до особистого тренувального кабінету дитини з моменту створення дитячого треку, а не покупки пакета.',world:'У кабінеті — рекомендовані цифрові тренажери та інші доступні ігри у світі Окастиків: дитина може заробляти зірки й розвивати героя. Пізнавальні матеріали доступні там, де вони вже додані.',lessonsTitle:'Тренажери для занять',lessons:'Заклад може використати треки, щоб відкрити викладачеві доступ до цифрових тренажерів для індивідуальних і групових занять з дітьми. Це окремий доступ, не три місяці особистого дитячого кабінету.',termsTitle:'Як використовувати пакет',terms:['Повний стандартний звіт однієї дитини — 1 трек, зокрема під час групового тестування.','Невикористаний залишок пакета діє 12 календарних місяців. Своєчасна докупка зберігає чинний залишок і оновлює строк від дати докупки.','Один безплатний повтор того самого типу протягом 30 днів не подовжує строк доступу.'],example:'20 треків — разова стандартна оцінка 20 дітей або 2 платні стандартні звіти для кожної з 10 дітей. Це не опис безплатного пробного доступу чи безплатного повтору.',home:'Головна',privacy:'Конфіденційність',offer:'Оферта',refund:'Повернення',requisites:'Реквізити'},
+en: {
+language:'Language',title:'Development tracks for your organisation',intro:'One-time packages for child screening and development. Choose a package and discuss the terms at a demo.',region:'Offer region',ukraine:'Ukraine — UAH',international:'International — EUR',regionNote:'The page language sets the initial region. You can change the region independently of the language.',choose:'Choose a track package',what:'What is a track?',tracks:'tracks',once:'one-time package price',saving:'Saving per track against the starter package',start:'Starter package',custom:'500+ tracks',request:'On request',cta:'Request a demo and terms',payment:'For new B2B purchases. A demo request does not create a payment order. Payment currency and method are agreed separately; an EUR price does not promise a card debit in euros. Existing subscriptions and previously issued orders are unchanged.',track:'A track includes a battery of cognitive screening tests for one child, a specialist report, development recommendations, a parent-friendly cognitive passport, and three calendar months of access to the child’s personal training account from creation of the child track, not from package purchase.',world:'The account includes recommended digital trainers and other available games in the world of Okastyky, where children can earn stars and develop their hero, plus learning materials where available.',lessonsTitle:'Trainers for lessons',lessons:'An organisation can use tracks to unlock teacher access to digital trainers for individual and group sessions with children. This is separate from the three months of access to the child’s personal account.',termsTitle:'Using your package',terms:['One full standard report for one child costs 1 track, including group testing.','Unused package tracks are valid for 12 calendar months. A top-up before expiry preserves the valid balance and renews its term from the top-up date.','One free repeat of the same type within 30 days does not extend access.'],example:'20 tracks cover one standard assessment for 20 children or 2 paid standard reports for each of 10 children. This is separate from a free trial or free repeat.',home:'Home',privacy:'Privacy policy',offer:'Terms of sale',refund:'Refunds',requisites:'Business details'},
+ru: {
+language:'Язык',title:'Треки развития для вашей организации',intro:'Разовые пакеты для скрининга и развития детей. Выберите объём и обсудите условия на демо.',region:'Регион предложения',ukraine:'Украина — UAH',international:'Международное предложение — EUR',regionNote:'Начальный регион выбран по языку страницы. Его можно менять независимо от языка.',choose:'Выберите пакет треков',what:'Что такое трек?',tracks:'треков',once:'разовая стоимость пакета',saving:'Экономия за трек относительно стартового пакета',start:'Стартовый пакет',custom:'От 500 треков',request:'По запросу',cta:'Запросить демо и условия',payment:'Предложение для новых B2B-покупок. Запрос демо не создаёт платёжный заказ. Валюту и способ оплаты согласуем отдельно; цена в EUR не обещает списание с карты в евро. Действующие подписки и ранее оформленные заказы не меняются.',track:'Трек включает скрининг когнитивных способностей ребёнка батареей тестов, отчёт для специалиста, рекомендации по развитию, понятный когнитивный паспорт для родителей и три календарных месяца доступа к личному тренировочному кабинету ребёнка с создания детского трека, а не с покупки пакета.',world:'В кабинете — рекомендованные цифровые тренажёры и другие доступные игры в мире Окастиков: ребёнок может зарабатывать звёзды и развивать героя. Познавательные материалы доступны там, где они уже добавлены.',lessonsTitle:'Тренажёры для занятий',lessons:'Организация может использовать треки, чтобы открыть преподавателю доступ к цифровым тренажёрам для индивидуальных и групповых занятий с детьми. Это отдельный доступ, не три месяца личного детского кабинета.',termsTitle:'Как использовать пакет',terms:['Полный стандартный отчёт одного ребёнка — 1 трек, в том числе при групповом тестировании.','Неиспользованный остаток пакета действует 12 календарных месяцев. Своевременная докупка сохраняет действующий остаток и обновляет срок от даты докупки.','Один бесплатный повтор того же типа в течение 30 дней не продлевает доступ.'],example:'20 треков — разовая стандартная оценка 20 детей или 2 платных стандартных отчёта для каждого из 10 детей. Это не описание бесплатного пробного доступа или бесплатного повтора.',home:'Главная',privacy:'Конфиденциальность',offer:'Оферта',refund:'Возврат',requisites:'Реквизиты'},
+pl: {
+language:'Język',title:'Ścieżki rozwoju dla Twojej placówki',intro:'Jednorazowe pakiety do badań przesiewowych i rozwoju dzieci. Wybierz pakiet i omów warunki podczas demonstracji.',region:'Region oferty',ukraine:'Ukraina — UAH',international:'Oferta międzynarodowa — EUR',regionNote:'Język strony określa początkowy region. Region można zmienić niezależnie od języka.',choose:'Wybierz pakiet ścieżek',what:'Czym jest ścieżka?',tracks:'ścieżek',once:'jednorazowa cena pakietu',saving:'Oszczędność za ścieżkę względem pakietu startowego',start:'Pakiet startowy',custom:'Od 500 ścieżek',request:'Na zapytanie',cta:'Poproś o demo i warunki',payment:'Oferta dla nowych zakupów B2B. Prośba o demo nie tworzy zamówienia płatniczego. Waluta i sposób płatności są uzgadniane oddzielnie; cena w EUR nie oznacza gwarancji obciążenia karty w euro. Obecne subskrypcje i wcześniejsze zamówienia pozostają bez zmian.',track:'Ścieżka obejmuje badanie przesiewowe zdolności poznawczych dziecka zestawem testów, raport dla specjalisty, zalecenia rozwojowe, zrozumiały paszport poznawczy dla rodziców oraz trzy miesiące kalendarzowe dostępu do osobistego konta treningowego dziecka od utworzenia ścieżki dziecka, a nie od zakupu pakietu.',world:'Konto zawiera zalecane ćwiczenia cyfrowe i inne dostępne gry w świecie Okastyky, gdzie dziecko może zdobywać gwiazdki i rozwijać bohatera, a także materiały edukacyjne tam, gdzie są dostępne.',lessonsTitle:'Ćwiczenia na zajęcia',lessons:'Placówka może wykorzystać ścieżki, aby otworzyć nauczycielowi dostęp do ćwiczeń cyfrowych na indywidualne i grupowe zajęcia z dziećmi. Jest to oddzielny dostęp, niezwiązany z trzema miesiącami osobistego konta dziecka.',termsTitle:'Korzystanie z pakietu',terms:['Pełny standardowy raport jednego dziecka kosztuje 1 ścieżkę, również w badaniu grupowym.','Niewykorzystane ścieżki są ważne przez 12 miesięcy kalendarzowych. Dokupienie przed wygaśnięciem zachowuje ważne saldo i odnawia termin od daty dokupienia.','Jedno bezpłatne powtórzenie tego samego typu w ciągu 30 dni nie przedłuża dostępu.'],example:'20 ścieżek to jednorazowa standardowa ocena 20 dzieci lub 2 płatne standardowe raporty dla każdego z 10 dzieci. Jest to niezależne od bezpłatnego okresu próbnego lub bezpłatnego powtórzenia.',home:'Strona główna',privacy:'Prywatność',offer:'Warunki sprzedaży',refund:'Zwroty',requisites:'Dane firmy'},
+cs: {
+language:'Jazyk',title:'Rozvojové cesty pro vaši organizaci',intro:'Jednorázové balíčky pro screening a rozvoj dětí. Vyberte objem a proberte podmínky při ukázce.',region:'Region nabídky',ukraine:'Ukrajina — UAH',international:'Mezinárodní nabídka — EUR',regionNote:'Jazyk stránky určuje počáteční region. Region můžete změnit nezávisle na jazyku.',choose:'Vyberte balíček cest',what:'Co je rozvojová cesta?',tracks:'cest',once:'jednorázová cena balíčku',saving:'Úspora za cestu oproti startovacímu balíčku',start:'Startovací balíček',custom:'Od 500 cest',request:'Na vyžádání',cta:'Požádat o ukázku a podmínky',payment:'Nabídka pro nové nákupy B2B. Žádost o ukázku nevytváří platební objednávku. Měna a způsob platby se dohodnou samostatně; cena v EUR neslibuje stržení z karty v eurech. Stávající předplatná a dřívější objednávky se nemění.',track:'Cesta zahrnuje screening kognitivních schopností dítěte sadou testů, zprávu pro odborníka, doporučení pro rozvoj, srozumitelný kognitivní pas pro rodiče a tři kalendářní měsíce přístupu do osobního tréninkového účtu dítěte od vytvoření dětské cesty, nikoli od nákupu balíčku.',world:'Účet obsahuje doporučená digitální cvičení a další dostupné hry ve světě Okastyky, kde dítě může získávat hvězdy a rozvíjet svou postavu, a vzdělávací materiály tam, kde jsou dostupné.',lessonsTitle:'Cvičení pro výuku',lessons:'Organizace může využít cesty k otevření přístupu učitele k digitálním cvičením pro individuální a skupinovou práci s dětmi. Jde o samostatný přístup, nikoli o tři měsíce osobního účtu dítěte.',termsTitle:'Použití balíčku',terms:['Úplná standardní zpráva jednoho dítěte stojí 1 cestu, také při skupinovém testování.','Nevyužitý zůstatek balíčku platí 12 kalendářních měsíců. Dokoupení před vypršením zachová platný zůstatek a obnoví dobu platnosti od data dokoupení.','Jedno bezplatné opakování stejného typu do 30 dnů neprodlužuje přístup.'],example:'20 cest pokryje jednorázové standardní posouzení 20 dětí nebo 2 placené standardní zprávy pro každé z 10 dětí. Nejde o bezplatné zkušební období ani bezplatné opakování.',home:'Úvod',privacy:'Soukromí',offer:'Obchodní podmínky',refund:'Vrácení plateb',requisites:'Firemní údaje'}
 };
-  const params = new URLSearchParams(location.search);
-  const language = document.getElementById('language');
-  const currency = document.getElementById('currency');
-  let referrerLanguage = 'uk';
-  try {
-    const referrer = new URL(document.referrer);
-    if (referrer.origin === location.origin) referrerLanguage = referrer.pathname.split('/')[1];
-  } catch { /* Direct visit: Ukrainian defaults. */ }
-  const requestedLanguage = params.get('lang') || referrerLanguage;
-  language.value = Object.hasOwn(copy, requestedLanguage) ? requestedLanguage : 'uk';
-  currency.value = ['USD','UAH','EUR'].includes(params.get('currency')) ? params.get('currency') : language.value === 'uk' ? 'UAH' : 'EUR';
-  let months = 1;
-  function render() {
-    const lang = language.value;
-    const text = copy[lang];
-    document.documentElement.lang = lang;
-    document.title = text.title + ' — Neuro.Educatimo';
-    document.querySelector('meta[name="description"]').content = text.intro;
-    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = text[el.dataset.i18n]; });
-    document.querySelectorAll('[data-feature]').forEach(el => { el.textContent = text.features[Number(el.dataset.feature)]; });
-    document.querySelectorAll('[data-tagline]').forEach(el => { el.textContent = text.taglines[Number(el.dataset.tagline)]; });
-    document.querySelectorAll('[data-limit]').forEach(el => { el.textContent = text.limit; });
-    document.querySelectorAll('[data-unlimited]').forEach(el => { el.textContent = text.unlimited; });
-    document.querySelectorAll('[data-home]').forEach(el => { el.href = '/' + lang + '/'; });
-    document.querySelectorAll('[data-registration]').forEach(el => { el.href = '/' + lang + '/#registration'; el.textContent = text.start; });
-    document.querySelectorAll('[data-months]').forEach((el,i) => {
-      el.textContent = text.terms[i];
-      el.setAttribute('aria-pressed', String(Number(el.dataset.months) === months));
-    });
-    const formatter = new Intl.NumberFormat(lang, {style:'currency', currency:currency.value, maximumFractionDigits:0, minimumFractionDigits:0});
-    document.querySelectorAll('[data-price]').forEach(el => {
-      const uah = totalsUAH[months][Number(el.dataset.price)];
-      const amount = currency.value === 'UAH' ? uah : currency.value === 'EUR' ? Math.ceil((uah / 50) / usdPerEuro) : uah / 50;
-      el.textContent = formatter.format(amount);
-    });
-    document.querySelectorAll('[data-period]').forEach(el => { el.textContent = months === 1 ? text.month : text.total + ' · ' + text.terms[[1,3,6,12].indexOf(months)]; });
-    document.getElementById('annual-note').hidden = months !== 12;
-    document.getElementById('eur-note').hidden = currency.value !== 'EUR';
-  }
-  function update() {
-    render();
-    const url = new URL(location.href);
-    url.searchParams.set('lang', language.value);
-    url.searchParams.set('currency', currency.value);
-    history.replaceState(null, '', url);
-  }
-  language.addEventListener('change', update);
-  currency.addEventListener('change', update);
-  document.querySelectorAll('[data-months]').forEach(el => el.addEventListener('click', () => { months = Number(el.dataset.months); render(); }));
-  render();
+const params = new URLSearchParams(location.search);
+const pathLang = location.pathname.split('/').filter(Boolean)[0];
+let lang = Object.hasOwn(copy, params.get('lang')) ? params.get('lang') : Object.hasOwn(copy, pathLang) ? pathLang : 'uk';
+let region = lang === 'uk' ? 'UAH' : 'EUR';
+const sizes = [20,50,100,200,300], amounts = {UAH:[4000,9000,16000,29000,39000],EUR:[200,450,800,1450,1950]}, discounts=[0,10,20,27.5,35];
+function render(){
+ const c=copy[lang];document.documentElement.lang=lang;document.title=c.title+' — Neuro.Educatimo';document.querySelector('meta[name="description"]').content=c.intro;
+ document.querySelectorAll('[data-text]').forEach(el=>{el.textContent=c[el.dataset.text];});
+ document.querySelector('#language').value=lang;document.querySelector('#region').value=region;
+ document.querySelectorAll('[data-home]').forEach(a=>a.href='/'+lang+'/');
+ document.querySelectorAll('[data-demo]').forEach(a=>a.href='/'+lang+'/#registration');
+ document.querySelectorAll('[data-legal]').forEach(a=>a.href='/'+lang+'/'+a.dataset.legal);
+ const grid=document.querySelector('#packages');grid.replaceChildren();
+ for(let i=0;i<6;i++){
+  const article=document.createElement('article');article.className='card';
+  const heading=document.createElement('h3');heading.textContent=i<5?sizes[i]+' '+c.tracks:c.custom;
+  const price=document.createElement('div');price.className='price';price.textContent=i<5?new Intl.NumberFormat(lang,{style:'currency',currency:region,maximumFractionDigits:0}).format(amounts[region][i]):c.request;
+  const once=document.createElement('p');once.textContent=c.once;
+  const saving=document.createElement('p');saving.className='discount';saving.textContent=i===0?c.start:i<5?c.saving+': '+new Intl.NumberFormat(lang).format(discounts[i])+'%':'';
+  const a=document.createElement('a');a.className='button';a.dataset.demo='';a.href='/'+lang+'/#registration';a.textContent=c.cta;
+  article.append(heading,price,once,saving,a);grid.append(article);
+ }
+ const terms=document.querySelector('#terms');terms.replaceChildren(...c.terms.map(t=>{const li=document.createElement('li');li.textContent=t;return li;}));
+}
+document.querySelector('#language').addEventListener('change',e=>{lang=e.target.value;region=lang==='uk'?'UAH':'EUR';const u=new URL(location.href);u.searchParams.set('lang',lang);history.replaceState(null,'',u);render();});
+document.querySelector('#region').addEventListener('change',e=>{region=e.target.value;render();});
+render();
 })();
